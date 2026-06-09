@@ -1,15 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Miku Music Clicker</title>
 
 <style>
 * {
     cursor: url("https://img.icons8.com/?size=256w&id=48416&format=png") 16 16, auto !important;
 }
-
 body {
     background-color: #333;
     color: #00fbff;
@@ -19,14 +18,11 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
+    flex-direction: column;
 }
-
-/* LOGIN */
 #login {
     text-align: center;
 }
-
-/* GAME */
 #game-container {
     display: none;
     text-align: center;
@@ -35,8 +31,8 @@ body {
     border-radius: 15px;
     border: 3px solid #00fbff;
     box-shadow: 0 0 20px #00fbff;
+    width: 400px;
 }
-
 button {
     padding: 10px;
     background: #00fbff;
@@ -45,17 +41,20 @@ button {
     cursor: pointer;
     margin: 5px;
 }
-
 #leaderboard {
     margin-top: 20px;
     text-align: left;
     background: #111;
     padding: 10px;
     border-radius: 10px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+.upgrade {
+    margin-top: 10px;
 }
 </style>
 </head>
-
 <body>
 
 <!-- LOGIN -->
@@ -66,160 +65,163 @@ button {
 
 <!-- GAME -->
 <div id="game-container">
-
     <h1>Miku Clicker 🎵</h1>
-
     <p>Notes: <span id="notes">0</span></p>
-    <p>NPS: <span id="nps">0</span></p>
-
-    <img id="miku" src="https://art.ngfiles.com/images/3032000/3032840_alphakibi_miku-titties.png" width="250">
+    <img id="miku" src="https://art.ngfiles.com/images/3032000/3032840_alphakibi_miku-titties.png" width="250" />
 
     <div>
         <button onclick="clickNote()">Click</button>
     </div>
 
+    <div class="upgrade">
+        <button onclick="buyUpgrade('auto', 50)">Auto-Notes (cost: 50 notes)</button>
+        <button onclick="buyUpgrade('power', 100)">Click Power (cost: 100 notes)</button>
+    </div>
     <div>
-        <button onclick="buy(1)">Dancer (10)</button>
-        <button onclick="buy(2)">Mic (100)</button>
-        <button onclick="buy(3)">Stage (1000)</button>
+        <p>Auto Notes/sec: <span id="auto-rate">0</span></p>
+        <p>Click Power: <span id="click-power">1</span></p>
     </div>
 
     <h3>Leaderboard</h3>
     <div id="leaderboard">Loading...</div>
-
 </div>
 
 <script type="module">
-
+// Firebase setup
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import {
-    getAuth,
-    GoogleAuthProvider,
-    signInWithPopup,
-    onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import { getAuth, GoogleAuthProvider, signInWithRedirect, getRedirectResult, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import { getFirestore, collection, getDocs, query, orderBy, setDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-import {
-    getFirestore,
-    doc,
-    setDoc,
-    getDocs,
-    collection,
-    orderBy,
-    query
-} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
-
-/* FIREBASE */
+// Firebase config
 const firebaseConfig = {
   apiKey: "AIzaSyAh_8PNPkXvOAHxg3TsTM3ULvenvl4ttKI",
   authDomain: "klik-98fc8.firebaseapp.com",
   projectId: "klik-98fc8",
-  storageBucket: "klik-98fc8.firebasestorage.app",
+  storageBucket: "klik-98fc8.appspot.com",
   messagingSenderId: "825491323098",
-  appId: "1:825491323098:web:bcc3ea387b8c93037acde3"
+  appId: "1:825491323098:web:bcc3ea387b8c93037acde3",
+  measurementId: "G-B9X9G4MH7G"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-/* STATE */
 let user = null;
 let notes = 0;
-let nps = 0;
+let clickPower = 1;
+let autoRate = 0;
+let autoInterval = null;
 
-/* UPGRADES (zoals jouw oude structuur) */
-const upgrades = {
-    1: { cost: 10, power: 1 },
-    2: { cost: 100, power: 5 },
-    3: { cost: 1000, power: 20 }
+// Functie voor inloggen met redirect
+document.getElementById("loginBtn").onclick = () => {
+  const provider = new GoogleAuthProvider();
+  signInWithRedirect(auth, provider); // gebruik redirect
+  console.log("Redirect ingeschakeld, wacht op resultaat...");
 };
 
-/* LOGIN */
-document.getElementById("loginBtn").onclick = async () => {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
-};
-
-/* AUTH (zoals jouw werkende versie: simpel & stabiel) */
-onAuthStateChanged(auth, (u) => {
-    if (u) {
-        user = u;
-        document.getElementById("login").style.display = "none";
-        document.getElementById("game-container").style.display = "block";
-        loadLeaderboard();
+// Afhandeling na redirect login
+getRedirectResult(auth)
+  .then((result) => {
+    if (result && result.user) {
+      user = result.user;
+      console.log("Ingelogd:", user);
+      startGame();
     }
+  })
+  .catch((error) => {
+    console.error("Fout bij login:", error);
+  });
+
+// Auth state listener
+onAuthStateChanged(auth, (u) => {
+  if (u) {
+    user = u;
+    console.log("Auth state changed, gebruiker ingelogd:", user);
+    startGame();
+  } else {
+    // Niet ingelogd
+    document.getElementById("login").style.display = "block";
+    document.getElementById("game-container").style.display = "none";
+  }
 });
 
-/* CLICK */
-window.clickNote = async function () {
-    notes++;
-    updateUI();
-    saveScore();
-};
-
-/* UPGRADES */
-window.buy = function (id) {
-    const upg = upgrades[id];
-    if (!upg) return;
-
-    if (notes >= upg.cost) {
-        notes -= upg.cost;
-        nps += upg.power;
-        upg.cost = Math.floor(upg.cost * 1.25);
-        updateUI();
-        saveScore();
-    }
-};
-
-/* NPS LOOP (zoals oude game: simpel, geen auth checks nodig) */
-setInterval(() => {
-    if (!user) return;
-    notes += nps / 10;
-    updateUI();
-}, 100);
-
-/* UI */
-function updateUI() {
-    document.getElementById("notes").innerText = Math.floor(notes);
-    document.getElementById("nps").innerText = nps;
+function startGame() {
+  document.getElementById("login").style.display = "none";
+  document.getElementById("game-container").style.display = "block";
+  loadLeaderboard();
+  startAutoNotes();
 }
 
-/* SAVE (throttled, niet spammen) */
-let lastSave = 0;
+// Klik functie
+window.clickNote = async () => {
+  notes += clickPower;
+  document.getElementById("notes").innerText = notes;
+  await saveScore();
+};
 
+// Score opslaan
 async function saveScore() {
-    if (!user) return;
-
-    const now = Date.now();
-    if (now - lastSave < 4000) return;
-    lastSave = now;
-
-    await setDoc(doc(db, "scores", user.uid), {
-        name: user.displayName,
-        score: Math.floor(notes),
-        nps: nps
-    });
+  if (!user) return;
+  const scoreRef = doc(db, "scores", user.uid);
+  const docSnap = await getDoc(scoreRef);
+  if (docSnap.exists()) {
+    const data = docSnap.data();
+    if (notes > data.score) {
+      await setDoc(scoreRef, { name: user.displayName, score: notes });
+    }
+  } else {
+    await setDoc(scoreRef, { name: user.displayName, score: notes });
+  }
+  loadLeaderboard();
 }
 
-/* LEADERBOARD (zelfde als jouw werkende versie) */
+// Leaderboard laden
 async function loadLeaderboard() {
-    const q = query(collection(db, "scores"), orderBy("score", "desc"));
-    const snap = await getDocs(q);
-
-    let html = "";
-    snap.forEach(d => {
-        const data = d.data();
-        html += `<div>${data.name}: ${data.score}</div>`;
-    });
-
-    document.getElementById("leaderboard").innerHTML = html;
+  const q = query(collection(db, "scores"), orderBy("score", "desc"));
+  const snap = await getDocs(q);
+  let html = "";
+  let count = 0;
+  snap.forEach((doc) => {
+    if (count < 10) {
+      const d = doc.data();
+      html += `<div>${d.name}: ${d.score}</div>`;
+      count++;
+    }
+  });
+  document.getElementById("leaderboard").innerHTML = html || "<div>Geen scores</div>";
 }
 
-/* refresh leaderboard rustig */
-setInterval(loadLeaderboard, 5000);
+// Auto notes
+function startAutoNotes() {
+  if (autoInterval) clearInterval(autoInterval);
+  autoInterval = setInterval(() => {
+    if (autoRate > 0) {
+      notes += autoRate;
+      document.getElementById("notes").innerText = notes;
+      saveScore();
+    }
+  }, 1000);
+}
 
+// Koop upgrades
+async function buyUpgrade(type, cost) {
+  if (notes >= cost) {
+    notes -= cost;
+    if (type === "auto") {
+      autoRate += 1;
+      document.getElementById("auto-rate").innerText = autoRate;
+      startAutoNotes();
+    } else if (type === "power") {
+      clickPower += 1;
+      document.getElementById("click-power").innerText = clickPower;
+    }
+    document.getElementById("notes").innerText = notes;
+    await saveScore();
+  } else {
+    alert("Niet genoeg notes!");
+  }
+}
 </script>
-
 </body>
 </html>
