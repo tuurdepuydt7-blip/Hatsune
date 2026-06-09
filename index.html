@@ -13,12 +13,12 @@
 body {
     background-color: #333;
     color: #00fbff;
-    font-family: Arial, sans-serif;
-    margin: 0;
-    height: 100vh;
+    font-family: 'Segoe UI', sans-serif;
     display: flex;
     justify-content: center;
     align-items: center;
+    height: 100vh;
+    margin: 0;
 }
 
 #login {
@@ -30,26 +30,31 @@ body {
     text-align: center;
     background: #222;
     padding: 25px;
-    border-radius: 15px;
+    border-radius: 20px;
     border: 3px solid #00fbff;
     box-shadow: 0 0 20px #00fbff;
 }
 
-button {
-    padding: 10px;
+.stats {
+    font-size: 20px;
+    margin: 10px;
+}
+
+.shop button {
+    margin: 5px;
+    padding: 8px;
     background: #00fbff;
     border: none;
     font-weight: bold;
     cursor: pointer;
-    margin: 5px;
 }
 
 #leaderboard {
-    margin-top: 20px;
-    text-align: left;
+    margin-top: 15px;
     background: #111;
     padding: 10px;
     border-radius: 10px;
+    text-align: left;
 }
 </style>
 </head>
@@ -58,8 +63,8 @@ button {
 
 <!-- LOGIN -->
 <div id="login">
-    <h2>Login met Google</h2>
-    <button id="loginBtn">Sign in</button>
+    <h2>Google Login Required</h2>
+    <button id="loginBtn">Login</button>
 </div>
 
 <!-- GAME -->
@@ -67,13 +72,22 @@ button {
 
     <h1>Miku Clicker 🎵</h1>
 
-    <p>Notes: <span id="notes">0</span></p>
-
-    <img id="miku" src="https://art.ngfiles.com/images/3032000/3032840_alphakibi_miku-titties.png" width="250">
-
-    <div>
-        <button onclick="clickNote()">Click</button>
+    <div class="stats">
+        Notes: <span id="notes">0</span><br>
+        NPS: <span id="nps">0</span>
     </div>
+
+    <img id="miku" width="250"
+    src="https://art.ngfiles.com/images/3032000/3032840_alphakibi_miku-titties.png">
+
+    <div class="shop">
+        <button onclick="buy('dancer')">Backup Dancer (10)</button>
+        <button onclick="buy('mic')">Pro Mic (100)</button>
+        <button onclick="buy('stage')">Neon Stage (1000)</button>
+        <button onclick="buy('tour')">World Tour (10000)</button>
+    </div>
+
+    <button onclick="resetSave()">Reset</button>
 
     <h3>Leaderboard</h3>
     <div id="leaderboard">Loading...</div>
@@ -81,87 +95,169 @@ button {
 </div>
 
 <script type="module">
-// Firebase
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import { 
-    getAuth, 
-    GoogleAuthProvider, 
-    signInWithPopup,
-    onAuthStateChanged
+import {
+getAuth,
+GoogleAuthProvider,
+signInWithPopup,
+onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 
 import {
-    getFirestore,
-    doc,
-    setDoc,
-    getDocs,
-    collection,
-    orderBy,
-    query
+getFirestore,
+doc,
+setDoc,
+getDocs,
+collection,
+orderBy,
+query
 } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-// JOUW CONFIG
 const firebaseConfig = {
-  apiKey: "AIzaSyAh_8PNPkXvOAHxg3TsTM3ULvenvl4ttKI",
-  authDomain: "klik-98fc8.firebaseapp.com",
-  projectId: "klik-98fc8",
-  storageBucket: "klik-98fc8.firebasestorage.app",
-  messagingSenderId: "825491323098",
-  appId: "1:825491323098:web:bcc3ea387b8c93037acde3",
-  measurementId: "G-B9X9G4MH7G"
+apiKey: "AIzaSyAh_8PNPkXvOAHxg3TsTM3ULvenvl4ttKI",
+authDomain: "klik-98fc8.firebaseapp.com",
+projectId: "klik-98fc8",
+storageBucket: "klik-98fc8.firebasestorage.app",
+messagingSenderId: "825491323098",
+appId: "1:825491323098:web:bcc3ea387b8c93037acde3"
 };
 
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-let user = null;
+let user;
 let notes = 0;
+let nps = 0;
+
+const upgrades = {
+dancer: { cost: 10, power: 1 },
+mic: { cost: 100, power: 5 },
+stage: { cost: 1000, power: 20 },
+tour: { cost: 10000, power: 100 }
+};
 
 // LOGIN
 document.getElementById("loginBtn").onclick = async () => {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+const provider = new GoogleAuthProvider();
+await signInWithPopup(auth, provider);
 };
 
-// AUTH STATE
-onAuthStateChanged(auth, (u) => {
-    if (u) {
-        user = u;
-        document.getElementById("login").style.display = "none";
-        document.getElementById("game-container").style.display = "block";
-        loadLeaderboard();
-    }
+onAuthStateChanged(auth, async (u) => {
+if (!u) return;
+
+user = u;
+document.getElementById("login").style.display = "none";
+document.getElementById("game-container").style.display = "block";
+
+loadSave();
+loadLeaderboard();
 });
 
-// GAME
-window.clickNote = async function() {
-    notes++;
-    document.getElementById("notes").innerText = notes;
-
-    await setDoc(doc(db, "scores", user.uid), {
-        name: user.displayName,
-        score: notes
-    });
+// CLICK
+document.getElementById("miku").onclick = (e) => {
+notes++;
+spawnParticle(e);
+update();
+save();
 };
+
+// BUY UPGRADES
+window.buy = function(type) {
+let upg = upgrades[type];
+
+if (notes >= upg.cost) {
+notes -= upg.cost;
+nps += upg.power;
+upg.cost = Math.floor(upg.cost * 1.25);
+update();
+save();
+}
+};
+
+// RESET
+window.resetSave = function() {
+localStorage.removeItem("mikuSave");
+notes = 0;
+nps = 0;
+update();
+save();
+};
+
+// SAVE LOCAL + CLOUD
+function save() {
+localStorage.setItem("mikuSave", JSON.stringify({ notes, nps }));
+
+setDoc(doc(db, "scores", user.uid), {
+name: user.displayName,
+score: Math.floor(notes)
+});
+}
+
+// LOAD LOCAL
+function loadSave() {
+let save = JSON.parse(localStorage.getItem("mikuSave"));
+if (save) {
+notes = save.notes;
+nps = save.nps;
+}
+update();
+}
+
+// UPDATE LOOP
+setInterval(() => {
+notes += nps / 10;
+update();
+save();
+}, 100);
 
 // LEADERBOARD
 async function loadLeaderboard() {
-    const q = query(collection(db, "scores"), orderBy("score", "desc"));
-    const snap = await getDocs(q);
+const q = query(collection(db, "scores"), orderBy("score", "desc"));
+const snap = await getDocs(q);
 
-    let html = "";
-    snap.forEach(doc => {
-        const d = doc.data();
-        html += `<div>${d.name}: ${d.score}</div>`;
-    });
+let html = "";
+snap.forEach(d => {
+let data = d.data();
+html += `<div>${data.name}: ${data.score}</div>`;
+});
 
-    document.getElementById("leaderboard").innerHTML = html;
+document.getElementById("leaderboard").innerHTML = html;
 }
 
-// refresh leaderboard
 setInterval(loadLeaderboard, 5000);
 
+// UI
+function update() {
+document.getElementById("notes").innerText = Math.floor(notes);
+document.getElementById("nps").innerText = nps;
+}
+
+function spawnParticle(e) {
+const p = document.createElement("div");
+p.innerText = "♫";
+p.style.position = "absolute";
+p.style.left = e.clientX + "px";
+p.style.top = e.clientY + "px";
+p.style.color = "#00fbff";
+document.body.appendChild(p);
+
+let y = e.clientY;
+let op = 1;
+
+let i = setInterval(() => {
+y -= 2;
+op -= 0.03;
+p.style.top = y + "px";
+p.style.opacity = op;
+if (op <= 0) {
+clearInterval(i);
+p.remove();
+}
+}, 16);
+}
+
+update();
 </script>
 
 </body>
