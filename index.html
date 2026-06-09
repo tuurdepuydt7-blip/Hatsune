@@ -1,118 +1,106 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Miku Clicker Firebase</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Miku Music Clicker</title>
 
 <style>
 * {
     cursor: url("https://img.icons8.com/?size=256w&id=48416&format=png") 16 16, auto !important;
 }
-
 body {
+    background-color: #333;
+    color: #00fbff;
+    font-family: Arial, sans-serif;
     margin: 0;
     height: 100vh;
     display: flex;
     justify-content: center;
     align-items: center;
-    background: #333;
-    color: #00fbff;
-    font-family: Arial;
-    overflow: hidden;
-}
-
-/* LOGIN */
-#login-screen {
-    position: fixed;
-    inset: 0;
-    background: #111;
-    display: flex;
     flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    z-index: 999;
 }
-
-/* GAME */
-#game {
+#login {
+    text-align: center;
+}
+#game-container {
+    display: none;
     text-align: center;
     background: #222;
     padding: 25px;
     border-radius: 15px;
     border: 3px solid #00fbff;
-    box-shadow: 0 0 15px #00fbff;
-    display: none;
+    box-shadow: 0 0 20px #00fbff;
+    width: 400px;
 }
-
-.stats {
-    font-size: 22px;
-    margin: 15px 0;
-}
-
 button {
+    padding: 10px;
     background: #00fbff;
     border: none;
-    padding: 10px;
-    margin: 5px;
     font-weight: bold;
     cursor: pointer;
+    margin: 5px;
 }
-
 #leaderboard {
-    margin-top: 15px;
+    margin-top: 20px;
+    text-align: left;
     background: #111;
     padding: 10px;
     border-radius: 10px;
-    font-size: 14px;
+    max-height: 200px;
+    overflow-y: auto;
+}
+.upgrade {
+    margin-top: 10px;
 }
 </style>
 </head>
-
 <body>
 
 <!-- LOGIN -->
-<div id="login-screen">
-    <h2>Login required</h2>
-    <button id="loginBtn">Sign in with Google</button>
+<div id="login">
+    <h2>Login met Google</h2>
+    <button id="loginBtn">Sign in</button>
 </div>
 
 <!-- GAME -->
-<div id="game">
-    <h1>MIKU CLICKER 🎵</h1>
-
-    <div class="stats">
-        Notes: <span id="notes">0</span><br>
-        NPS: <span id="nps">0</span>
-    </div>
-
-    <button id="clickBtn">CLICK MIKU</button>
+<div id="game-container">
+    <h1>Miku Clicker 🎵</h1>
+    <p>Notes: <span id="notes">0</span></p>
+    <img id="miku" src="https://art.ngfiles.com/images/3032000/3032840_alphakibi_miku-titties.png" width="250" />
 
     <div>
-        <button onclick="buy(1)">Dancer (10)</button>
-        <button onclick="buy(2)">Mic (100)</button>
+        <button onclick="clickNote()">Click</button>
     </div>
 
-    <div id="leaderboard">
-        Loading leaderboard...
+    <div class="upgrade">
+        <button onclick="buyUpgrade('auto', 10)">Auto-Notes (cost: 50 notes)</button>
+        <button onclick="buyUpgrade('power', 20)">Click Power (cost: 100 notes)</button>
     </div>
+    <div>
+        <p>Auto Notes/sec: <span id="auto-rate">0</span></p>
+        <p>Click Power: <span id="click-power">1</span></p>
+    </div>
+
+    <h3>Leaderboard</h3>
+    <div id="leaderboard">Loading...</div>
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } 
-from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
+// Firebase setup
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+import { getFirestore, collection, getDocs, query, orderBy, setDoc, doc, getDoc } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-import { getFirestore, doc, setDoc, getDocs, collection, query, orderBy, limit }
-from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
-
+// Firebase config
 const firebaseConfig = {
-  apiKey: "AIzaSyAh_8PNPkPkvOAHxg3TsTM3ULvenvl4ttKI",
+  apiKey: "AIzaSyAh_8PNPkXvOAHxg3TsTM3ULvenvl4ttKI",
   authDomain: "klik-98fc8.firebaseapp.com",
   projectId: "klik-98fc8",
-  storageBucket: "klik-98fc8.firebasestorage.app",
+  storageBucket: "klik-98fc8.appspot.com",
   messagingSenderId: "825491323098",
-  appId: "1:825491323098:web:bcc3ea387b8c93037acde3"
+  appId: "1:825491323098:web:bcc3ea387b8c93037acde3",
+  measurementId: "G-B9X9G4MH7G"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -121,87 +109,97 @@ const db = getFirestore(app);
 
 let user = null;
 let notes = 0;
-let nps = 0;
+let clickPower = 1;
+let autoRate = 0;
+let autoInterval = null;
 
-/* LOGIN */
+// LOGIN
 document.getElementById("loginBtn").onclick = async () => {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
+  const provider = new GoogleAuthProvider();
+  await signInWithPopup(auth, provider);
 };
 
-/* AUTH STATE (STABIEL) */
+// AUTH STATE
 onAuthStateChanged(auth, (u) => {
-    if (u) {
-        user = u;
-        document.getElementById("login-screen").style.display = "none";
-        document.getElementById("game").style.display = "block";
-        loadLeaderboard();
-    } else {
-        user = null;
-        document.getElementById("login-screen").style.display = "flex";
-        document.getElementById("game").style.display = "none";
-    }
+  if (u) {
+    user = u;
+    document.getElementById("login").style.display = "none";
+    document.getElementById("game-container").style.display = "block";
+    loadLeaderboard();
+    startAutoNotes();
+  }
 });
 
-/* CLICK */
-document.getElementById("clickBtn").onclick = () => {
-    notes++;
-    update();
+// Click handler
+window.clickNote = async function() {
+  notes += clickPower;
+  document.getElementById("notes").innerText = notes;
+  await saveScore();
 };
 
-/* UPGRADES */
-window.buy = (type) => {
-    if (type === 1 && notes >= 10) {
-        notes -= 10;
-        nps += 1;
+// Save score (update only if higher)
+async function saveScore() {
+  if (!user) return;
+  const scoreRef = doc(db, "scores", user.uid);
+  const docSnap = await getDoc(scoreRef);
+  if (docSnap.exists()) {
+    const data = docSnap.data();
+    if (notes > data.score) {
+      await setDoc(scoreRef, { name: user.displayName, score: notes });
     }
-    if (type === 2 && notes >= 100) {
-        notes -= 100;
-        nps += 5;
-    }
-    update();
-};
-
-/* LOOP */
-setInterval(() => {
-    if (!user) return;
-    notes += nps / 10;
-    update();
-}, 100);
-
-/* SAVE */
-async function save() {
-    if (!user) return;
-
-    await setDoc(doc(db, "leaderboard", user.uid), {
-        name: user.displayName,
-        notes: Math.floor(notes),
-        nps: nps
-    });
+  } else {
+    await setDoc(scoreRef, { name: user.displayName, score: notes });
+  }
+  loadLeaderboard();
 }
 
-/* LEADERBOARD */
+// Load leaderboard (top 10)
 async function loadLeaderboard() {
-    const q = query(collection(db, "leaderboard"), orderBy("notes", "desc"), limit(10));
-    const snap = await getDocs(q);
-
-    let html = "<b>Leaderboard</b><br>";
-    snap.forEach(d => {
-        html += `${d.data().name} - ${d.data().notes}<br>`;
-    });
-
-    document.getElementById("leaderboard").innerHTML = html;
+  const q = query(collection(db, "scores"), orderBy("score", "desc"));
+  const snap = await getDocs(q);
+  let html = "";
+  let count = 0;
+  snap.forEach((doc) => {
+    if (count < 10) {
+      const d = doc.data();
+      html += `<div>${d.name}: ${d.score}</div>`;
+      count++;
+    }
+  });
+  document.getElementById("leaderboard").innerHTML = html || "<div>No scores yet</div>";
 }
 
-/* UI */
-function update() {
-    document.getElementById("notes").innerText = Math.floor(notes);
-    document.getElementById("nps").innerText = nps;
+// Auto notes
+function startAutoNotes() {
+  if (autoInterval) clearInterval(autoInterval);
+  autoInterval = setInterval(() => {
+    if (autoRate > 0) {
+      notes += autoRate;
+      document.getElementById("notes").innerText = notes;
+      saveScore();
+    }
+  }, 1000);
+}
 
-    save();
-    loadLeaderboard();
+// Buy upgrades
+async function buyUpgrade(type, cost) {
+  if (notes >= cost) {
+    notes -= cost;
+    if (type === 'auto') {
+      autoRate += 1;
+      document.getElementById("auto-rate").innerText = autoRate;
+      startAutoNotes();
+    }
+    if (type === 'power') {
+      clickPower += 1;
+      document.getElementById("click-power").innerText = clickPower;
+    }
+    document.getElementById("notes").innerText = notes;
+    await saveScore();
+  } else {
+    alert("Not enough notes!");
+  }
 }
 </script>
-
 </body>
 </html>
