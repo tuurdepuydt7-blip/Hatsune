@@ -1,248 +1,351 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Music Clicker</title>
+
+<style>
+body{
+    background:#333;
+    color:#00fbff;
+    font-family:Segoe UI,sans-serif;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+    margin:0;
+}
+
+#game{
+    text-align:center;
+    background:#222;
+    padding:30px;
+    border-radius:20px;
+    border:4px solid #00fbff;
+    box-shadow:0 0 20px #00fbff;
+}
+
+#clicker{
+    width:250px;
+    height:250px;
+    border-radius:20px;
+    cursor:pointer;
+    transition:.1s;
+}
+
+#clicker:active{
+    transform:scale(.95);
+}
+
+.shop{
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    gap:10px;
+    margin-top:20px;
+}
+
+button{
+    border:none;
+    padding:10px;
+    border-radius:8px;
+    background:#00fbff;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+button:disabled{
+    background:#555;
+    color:#999;
+}
+
+.particle{
+    position:absolute;
+    pointer-events:none;
+    color:#00fbff;
+    font-weight:bold;
+}
+</style>
+</head>
+<body>
+
+<div id="game">
+
+<h1>🎵 Music Clicker</h1>
+
+<h2 id="notes">0</h2>
+
+<div>
+Notes/sec:
+<span id="nps">0</span>
+</div>
+
+<br>
+
+<img
+id="clicker"
+src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Hatsune_Miku_V4X.svg/512px-Hatsune_Miku_V4X.svg.png"
+alt="Click"
+>
+
+<br><br>
+
+<button onclick="buyClickUpgrade()">
+Better Clicks
+(<span id="clickCost">50</span>)
+</button>
+
+<div class="shop">
+
+<button id="upg1" onclick="buyUpgrade('dancer')"></button>
+<button id="upg2" onclick="buyUpgrade('mic')"></button>
+<button id="upg3" onclick="buyUpgrade('stage')"></button>
+<button id="upg4" onclick="buyUpgrade('tour')"></button>
+
+</div>
+
+<br>
+
+<button onclick="resetSave()">
+Reset Save
+</button>
+
+</div>
+
 <script>
 
-// Laden van savegame
-let save = JSON.parse(localStorage.getItem("mikuSave")) || {};
+let save =
+JSON.parse(
+localStorage.getItem("musicSave")
+) || {};
 
-let notes = save.notes || 0;
-let nps = save.nps || 0;
+let notes =
+save.notes || 0;
 
-let clickPower = save.clickPower || 1;
-let clickCost = save.clickCost || 50;
+let nps =
+save.nps || 0;
 
-const upgrades = save.upgrades || {
-    creampie: { cost: 10, power: 1 },
-    piemelseks: { cost: 100, power: 5 },
-    stage: { cost: 1000, power: 20 },
-    tour: { cost: 10000, power: 100 }
+let clickPower =
+save.clickPower || 1;
+
+let clickCost =
+save.clickCost || 50;
+
+let upgrades =
+save.upgrades || {
+
+    dancer:{
+        cost:10,
+        power:1
+    },
+
+    mic:{
+        cost:100,
+        power:5
+    },
+
+    stage:{
+        cost:1000,
+        power:20
+    },
+
+    tour:{
+        cost:10000,
+        power:100
+    }
+
 };
 
-const noteDisplay = document.getElementById('note-count');
-const npsDisplay = document.getElementById('nps-count');
-const mikuBtn = document.getElementById('miku-btn');
+const noteEl =
+document.getElementById("notes");
 
-// Voeg click upgrade knop toe als die nog niet bestaat
-const clickBtn = document.createElement("button");
+const npsEl =
+document.getElementById("nps");
 
-clickBtn.innerHTML =
-    `Better Clicks (Cost:
-    <span id="click-cost">${clickCost}</span>)`;
+const clickCostEl =
+document.getElementById("clickCost");
 
-clickBtn.style.marginTop = "15px";
+const clicker =
+document.getElementById("clicker");
 
-clickBtn.onclick = buyClickUpgrade;
-
-document
-.getElementById("game-container")
-.appendChild(clickBtn);
-
-// Klikken op Miku
-mikuBtn.addEventListener('click', (e) => {
+clicker.addEventListener(
+"click",
+e => {
 
     notes += clickPower;
 
-    createParticle(e);
+    particle(e);
 
-    updateDisplay();
-    updateButtons();
+    update();
 
-});
-
-// Upgrade kopen
-function buyUpgrade(type) {
-
-    const upg = upgrades[type];
-
-    if (!upg) return;
-
-    if (notes >= upg.cost) {
-
-        notes -= upg.cost;
-
-        nps += upg.power;
-
-        upg.cost =
-        Math.floor(upg.cost * 1.25);
-
-        updateDisplay();
-        updateButtons();
-
-        saveGame();
-    }
 }
+);
 
-// Click upgrade
-function buyClickUpgrade() {
+function buyUpgrade(name){
 
-    if (notes >= clickCost) {
+    const upg =
+    upgrades[name];
 
-        notes -= clickCost;
+    if(notes < upg.cost)
+    return;
 
-        clickPower++;
+    notes -= upg.cost;
 
-        clickCost =
-        Math.floor(clickCost * 1.5);
+    nps += upg.power;
 
-        document.getElementById(
-            "click-cost"
-        ).textContent = clickCost;
-
-        updateDisplay();
-
-        saveGame();
-    }
-}
-
-// Opslaan
-function saveGame() {
-
-    localStorage.setItem(
-        "mikuSave",
-        JSON.stringify({
-
-            notes,
-            nps,
-
-            clickPower,
-            clickCost,
-
-            upgrades
-
-        })
+    upg.cost =
+    Math.floor(
+    upg.cost * 1.25
     );
+
+    update();
 }
 
-// Reset save
-function resetSave() {
+function buyClickUpgrade(){
 
-    if (
-        confirm(
-            "Weet je zeker dat je je save wilt verwijderen?"
-        )
-    ) {
+    if(notes < clickCost)
+    return;
 
-        localStorage.removeItem(
-            "mikuSave"
-        );
+    notes -= clickCost;
 
-        location.reload();
-    }
+    clickPower++;
+
+    clickCost =
+    Math.floor(
+    clickCost * 1.5
+    );
+
+    update();
 }
 
-// Automatische inkomsten
-setInterval(() => {
+function update(){
 
-    notes += nps / 10;
-
-    updateDisplay();
-    updateButtons();
-
-}, 100);
-
-// Auto-save
-setInterval(saveGame, 5000);
-
-function updateDisplay() {
-
-    noteDisplay.textContent =
+    noteEl.textContent =
     Math.floor(notes);
 
-    npsDisplay.textContent =
+    npsEl.textContent =
     nps;
-}
 
-function updateButtons() {
+    clickCostEl.textContent =
+    clickCost;
 
-    const keys =
+    const names =
     Object.keys(upgrades);
 
-    keys.forEach((key, index) => {
+    names.forEach(
+    (name,index)=>{
 
         const upg =
-        upgrades[key];
+        upgrades[name];
 
         const btn =
         document.getElementById(
-            `upg-${index + 1}`
+        "upg"+(index+1)
         );
 
-        if (!btn) return;
-
         btn.innerHTML =
-        `${key.toUpperCase()}
-        (Cost: ${upg.cost})
-        <br>
-        +${upg.power} Note/sec`;
+        `${name}<br>
+        Cost: ${upg.cost}<br>
+        +${upg.power}/s`;
 
         btn.disabled =
         notes < upg.cost;
     });
+
+    save();
 }
 
-// Klik-effect
-function createParticle(e) {
+function save(){
 
-    const particle =
-    document.createElement('div');
+    localStorage.setItem(
+    "musicSave",
 
-    particle.innerText =
-    "+" + clickPower;
+    JSON.stringify({
 
-    particle.style.position =
-    'absolute';
+        notes,
+        nps,
+        clickPower,
+        clickCost,
+        upgrades
 
-    particle.style.left =
-    e.clientX + 'px';
+    })
+    );
+}
 
-    particle.style.top =
-    e.clientY + 'px';
+function resetSave(){
 
-    particle.style.color =
-    '#00fbff';
-
-    particle.style.fontSize =
-    '24px';
-
-    particle.style.fontWeight =
-    'bold';
-
-    particle.style.pointerEvents =
-    'none';
-
-    particle.style.zIndex =
-    '100';
-
-    document.body.appendChild(
-        particle
+    localStorage.removeItem(
+    "musicSave"
     );
 
-    let y = e.clientY;
-    let opacity = 1;
+    location.reload();
+}
+
+function particle(e){
+
+    const p =
+    document.createElement("div");
+
+    p.className =
+    "particle";
+
+    p.innerText =
+    "+"+clickPower;
+
+    p.style.left =
+    e.clientX+"px";
+
+    p.style.top =
+    e.clientY+"px";
+
+    document.body
+    .appendChild(p);
+
+    let y =
+    e.clientY;
+
+    let op = 1;
 
     const anim =
-    setInterval(() => {
+    setInterval(()=>{
 
-        y -= 3;
+        y -= 2;
 
-        opacity -= 0.03;
+        op -= .03;
 
-        particle.style.top =
-        y + 'px';
+        p.style.top =
+        y+"px";
 
-        particle.style.opacity =
-        opacity;
+        p.style.opacity =
+        op;
 
-        if (opacity <= 0) {
+        if(op <= 0){
 
             clearInterval(anim);
 
-            particle.remove();
+            p.remove();
         }
 
-    }, 16);
+    },16);
 }
 
-// Eerste update
-updateDisplay();
-updateButtons();
+setInterval(()=>{
+
+    notes +=
+    nps / 10;
+
+    update();
+
+},100);
+
+setInterval(
+save,
+5000
+);
+
+update();
 
 </script>
+
+</body>
+</html>
