@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Miku Music Clicker</title>
+    <style>
+        body {
+            background-color: #222;
+            color: #00fbff;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        #game-container {
+            text-align: center;
+            background: #333;
+            padding: 20px;
+            border-radius: 20px;
+            border: 4px solid #00fbff;
+            box-shadow: 0 0 20px #00fbff;
+        }
+
+        #miku-btn {
+            width: 200px;
+            cursor: pointer;
+            transition: transform 0.1s;
+            user-select: none;
+        }
+
+        #miku-btn:active {
+            transform: scale(0.95);
+        }
+
+        .stats {
+            font-size: 24px;
+            margin: 20px 0;
+            font-weight: bold;
+        }
+
+        .shop {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            background: #00fbff;
+            color: #222;
+            border: none;
+            padding: 10px;
+            font-weight: bold;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        button:disabled {
+            background: #555;
+            color: #888;
+            cursor: not-allowed;
+        }
+
+        button:hover:not(:disabled) {
+            background: #fff;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-container">
+        <h1>MIKU MUSIC CLICKER</h1>
+        <div class="stats">
+            Notes: <span id="note-count">0</span><br>
+            <small>Notes per second: <span id="nps-count">0</span></small>
+        </div>
+
+        <!-- You can replace this image URL with a real Miku PNG -->
+        <img id="miku-btn" src="https://via.placeholder.com/200x200/00fbff/000000?text=MIKU" alt="Miku">
+
+        <div class="shop">
+            <button id="upg-1" onclick="buyUpgrade('dancer')">
+                Backup Dancer (Cost: 10) <br> +1 Note/sec
+            </button>
+            <button id="upg-2" onclick="buyUpgrade('mic')">
+                Pro Microphone (Cost: 100) <br> +5 Notes/sec
+            </button>
+            <button id="upg-3" onclick="buyUpgrade('stage')">
+                Neon Stage (Cost: 1000) <br> +20 Notes/sec
+            </button>
+            <button id="upg-4" onclick="buyUpgrade('tour')">
+                World Tour (Cost: 10000) <br> +100 Notes/sec
+            </button>
+        </div>
+    </div>
+
+    <script>
+        let notes = 0;
+        let nps = 0;
+
+        const upgrades = {
+            dancer: { cost: 10, power: 1 },
+            mic: { cost: 100, power: 5 },
+            stage: { cost: 1000, power: 20 },
+            tour: { cost: 10000, power: 100 }
+        };
+
+        const noteDisplay = document.getElementById('note-count');
+        const npsDisplay = document.getElementById('nps-count');
+        const mikuBtn = document.getElementById('miku-btn');
+
+        // Click Event
+        mikuBtn.addEventListener('click', () => {
+            notes++;
+            updateDisplay();
+            createParticle();
+        });
+
+        function buyUpgrade(type) {
+            const upg = upgrades[type];
+            if (notes >= upg.cost) {
+                notes -= upg.cost;
+                nps += upg.power;
+                upg.cost = Math.floor(upg.cost * 1.15); // Price increases
+                updateDisplay();
+                updateButtons();
+            }
+        }
+
+        function updateDisplay() {
+            noteDisplay.innerText = Math.floor(notes);
+            npsDisplay.innerText = nps;
+        }
+
+        function updateButtons() {
+            for (let key in upgrades) {
+                const btn = document.getElementById(`upg-${Object.keys(upgrades).indexOf(key) + 1}`);
+                btn.innerHTML = `${key.toUpperCase()} (Cost: ${upgrades[key].cost}) <br> +${upgrades[key].power} Note/sec`;
+                btn.disabled = notes < upgrades[key].cost;
+            }
+        }
+
+        // Game Loop for passive income
+        setInterval(() => {
+            notes += nps / 10;
+            updateDisplay();
+            updateButtons();
+        }, 100);
+
+        // Visual polish: Floating +1s
+        function createParticle() {
+            const particle = document.createElement('div');
+            particle.innerText = '♫';
+            particle.style.position = 'absolute';
+            particle.style.left = (event.clientX) + 'px';
+            particle.style.top = (event.clientY) + 'px';
+            particle.style.color = '#00fbff';
+            particle.style.fontSize = '20px';
+            particle.style.pointerEvents = 'none';
+            document.body.appendChild(particle);
+
+            let yPos = event.clientY;
+            let xPos = event.clientX;
+
+            const anim = setInterval(() => {
+                yPos -= 2;
+                xPos += Math.random() * 2 - 1;
+                particle.style.top = yPos + 'px';
+                particle.style.left = xPos + 'px';
+                particle.style.opacity -= 0.05;
+                if (particle.style.opacity <= 0) {
+                    clearInterval(anim);
+                    particle.remove();
+                }
+            }, 20);
+        }
+    </script>
+</body>
+</html>
