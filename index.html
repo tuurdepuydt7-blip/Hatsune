@@ -13,48 +13,61 @@
 body {
     background-color: #333;
     color: #00fbff;
-    font-family: 'Segoe UI', sans-serif;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
     margin: 0;
+    overflow: hidden;
 }
 
-#login {
-    text-align: center;
+/* LOGIN OVERLAY */
+#login-screen {
+    position: fixed;
+    inset: 0;
+    background: #111;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    flex-direction: column;
+    z-index: 9999;
 }
 
+#login-screen button {
+    padding: 15px 25px;
+    font-size: 18px;
+}
+
+/* GAME */
 #game-container {
-    display: none;
     text-align: center;
     background: #222;
-    padding: 25px;
+    padding: 30px;
     border-radius: 20px;
-    border: 3px solid #00fbff;
+    border: 4px solid #00fbff;
     box-shadow: 0 0 20px #00fbff;
 }
 
-.stats {
-    font-size: 20px;
-    margin: 10px;
-}
+h1 { margin-top: 0; }
 
-.shop button {
-    margin: 5px;
-    padding: 8px;
-    background: #00fbff;
-    border: none;
-    font-weight: bold;
-    cursor: pointer;
-}
+.stats { font-size: 24px; margin: 20px 0; }
 
 #leaderboard {
-    margin-top: 15px;
+    margin-top: 20px;
     background: #111;
     padding: 10px;
     border-radius: 10px;
-    text-align: left;
+    font-size: 14px;
+}
+
+button {
+    background: #00fbff;
+    color: #222;
+    border: none;
+    padding: 10px;
+    font-weight: bold;
+    border-radius: 8px;
 }
 </style>
 </head>
@@ -62,202 +75,169 @@ body {
 <body>
 
 <!-- LOGIN -->
-<div id="login">
-    <h2>Google Login Required</h2>
-    <button id="loginBtn">Login</button>
+<div id="login-screen">
+    <h2>Login required</h2>
+    <button id="loginBtn">Sign in with Google</button>
 </div>
 
 <!-- GAME -->
 <div id="game-container">
 
-    <h1>Miku Clicker 🎵</h1>
+<h1>MIKU MUSIC CLICKER 🎵</h1>
 
-    <div class="stats">
-        Notes: <span id="notes">0</span><br>
-        NPS: <span id="nps">0</span>
-    </div>
+<div class="stats">
+<b>Notes:</b><br>
+<span id="note-count">0</span><br>
+<small>Notes per second: <span id="nps-count">0</span></small>
+</div>
 
-    <img id="miku" width="250"
-    src="https://art.ngfiles.com/images/3032000/3032840_alphakibi_miku-titties.png">
+<img id="miku-btn"
+src="https://art.ngfiles.com/images/3032000/3032840_alphakibi_miku-titties.png?f1675755475">
 
-    <div class="shop">
-        <button onclick="buy('dancer')">Backup Dancer (10)</button>
-        <button onclick="buy('mic')">Pro Mic (100)</button>
-        <button onclick="buy('stage')">Neon Stage (1000)</button>
-        <button onclick="buy('tour')">World Tour (10000)</button>
-    </div>
+<div class="shop">
+<button id="upg-1" onclick="buyUpgrade('dancer')">Backup Dancer</button>
+<button id="upg-2" onclick="buyUpgrade('mic')">Mic</button>
+<button id="upg-3" onclick="buyUpgrade('stage')">Stage</button>
+<button id="upg-4" onclick="buyUpgrade('tour')">Tour</button>
+</div>
 
-    <button onclick="resetSave()">Reset</button>
+<div id="leaderboard">
+<h3>Leaderboard</h3>
+<div id="lb-list">Loading...</div>
+</div>
 
-    <h3>Leaderboard</h3>
-    <div id="leaderboard">Loading...</div>
+<button onclick="resetSave()">Reset</button>
 
 </div>
 
 <script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-app.js";
+import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.4/firebase-analytics.js";
 import {
-getAuth,
-GoogleAuthProvider,
-signInWithPopup,
-onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+    getAuth,
+    GoogleAuthProvider,
+    signInWithPopup,
+    onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.4/firebase-auth.js";
 
 import {
-getFirestore,
-doc,
-setDoc,
-getDocs,
-collection,
-orderBy,
-query
-} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+    getFirestore,
+    doc,
+    setDoc,
+    getDocs,
+    collection,
+    orderBy,
+    query,
+    limit
+} from "https://www.gstatic.com/firebasejs/10.12.4/firebase-firestore.js";
 
+// Firebase config
 const firebaseConfig = {
-apiKey: "AIzaSyAh_8PNPkXvOAHxg3TsTM3ULvenvl4ttKI",
-authDomain: "klik-98fc8.firebaseapp.com",
-projectId: "klik-98fc8",
-storageBucket: "klik-98fc8.firebasestorage.app",
-messagingSenderId: "825491323098",
-appId: "1:825491323098:web:bcc3ea387b8c93037acde3"
+  apiKey: "AIzaSyAh_8PNPkvOAHxg3TsTM3ULvenvl4ttKI",
+  authDomain: "klik-98fc8.firebaseapp.com",
+  projectId: "klik-98fc8",
+  storageBucket: "klik-98fc8.firebasestorage.app",
+  messagingSenderId: "825491323098",
+  appId: "1:825491323098:web:bcc3ea387b8c93037acde3",
+  measurementId: "G-B9X9G4MH7G"
 };
 
 const app = initializeApp(firebaseConfig);
+getAnalytics(app);
+
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-let user;
+// GAME STATE
+let user = null;
+
 let notes = 0;
 let nps = 0;
 
 const upgrades = {
-dancer: { cost: 10, power: 1 },
-mic: { cost: 100, power: 5 },
-stage: { cost: 1000, power: 20 },
-tour: { cost: 10000, power: 100 }
+    dancer: { cost: 10, power: 1 },
+    mic: { cost: 100, power: 5 },
+    stage: { cost: 1000, power: 20 },
+    tour: { cost: 10000, power: 100 }
 };
 
 // LOGIN
 document.getElementById("loginBtn").onclick = async () => {
-const provider = new GoogleAuthProvider();
-await signInWithPopup(auth, provider);
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(auth, provider);
 };
 
 onAuthStateChanged(auth, async (u) => {
-if (!u) return;
-
-user = u;
-document.getElementById("login").style.display = "none";
-document.getElementById("game-container").style.display = "block";
-
-loadSave();
-loadLeaderboard();
+    if (u) {
+        user = u;
+        document.getElementById("login-screen").style.display = "none";
+        loadLeaderboard();
+    }
 });
 
 // CLICK
-document.getElementById("miku").onclick = (e) => {
-notes++;
-spawnParticle(e);
-update();
-save();
+document.getElementById("miku-btn").onclick = (e) => {
+    notes++;
+    update();
 };
 
-// BUY UPGRADES
-window.buy = function(type) {
-let upg = upgrades[type];
-
-if (notes >= upg.cost) {
-notes -= upg.cost;
-nps += upg.power;
-upg.cost = Math.floor(upg.cost * 1.25);
-update();
-save();
-}
+// UPGRADES
+window.buyUpgrade = (type) => {
+    const upg = upgrades[type];
+    if (notes >= upg.cost) {
+        notes -= upg.cost;
+        nps += upg.power;
+        upg.cost = Math.floor(upg.cost * 1.25);
+        update();
+    }
 };
 
 // RESET
-window.resetSave = function() {
-localStorage.removeItem("mikuSave");
-notes = 0;
-nps = 0;
-update();
-save();
+window.resetSave = () => {
+    notes = 0;
+    nps = 0;
+    update();
 };
 
-// SAVE LOCAL + CLOUD
-function save() {
-localStorage.setItem("mikuSave", JSON.stringify({ notes, nps }));
-
-setDoc(doc(db, "scores", user.uid), {
-name: user.displayName,
-score: Math.floor(notes)
-});
-}
-
-// LOAD LOCAL
-function loadSave() {
-let save = JSON.parse(localStorage.getItem("mikuSave"));
-if (save) {
-notes = save.notes;
-nps = save.nps;
-}
-update();
-}
-
-// UPDATE LOOP
+// LOOP
 setInterval(() => {
-notes += nps / 10;
-update();
-save();
+    notes += nps / 10;
+    update();
 }, 100);
+
+// SAVE TO FIREBASE
+async function saveScore() {
+    if (!user) return;
+
+    await setDoc(doc(db, "leaderboard", user.uid), {
+        name: user.displayName,
+        notes: Math.floor(notes),
+        nps
+    });
+}
 
 // LEADERBOARD
 async function loadLeaderboard() {
-const q = query(collection(db, "scores"), orderBy("score", "desc"));
-const snap = await getDocs(q);
+    const q = query(collection(db, "leaderboard"), orderBy("notes", "desc"), limit(10));
+    const snap = await getDocs(q);
 
-let html = "";
-snap.forEach(d => {
-let data = d.data();
-html += `<div>${data.name}: ${data.score}</div>`;
-});
+    let html = "";
+    snap.forEach(doc => {
+        const d = doc.data();
+        html += `<div>${d.name} - ${d.notes}</div>`;
+    });
 
-document.getElementById("leaderboard").innerHTML = html;
+    document.getElementById("lb-list").innerHTML = html;
 }
 
-setInterval(loadLeaderboard, 5000);
-
-// UI
+// UPDATE UI
 function update() {
-document.getElementById("notes").innerText = Math.floor(notes);
-document.getElementById("nps").innerText = nps;
+    document.getElementById("note-count").textContent = Math.floor(notes);
+    document.getElementById("nps-count").textContent = nps;
+
+    saveScore();
+    loadLeaderboard();
 }
-
-function spawnParticle(e) {
-const p = document.createElement("div");
-p.innerText = "♫";
-p.style.position = "absolute";
-p.style.left = e.clientX + "px";
-p.style.top = e.clientY + "px";
-p.style.color = "#00fbff";
-document.body.appendChild(p);
-
-let y = e.clientY;
-let op = 1;
-
-let i = setInterval(() => {
-y -= 2;
-op -= 0.03;
-p.style.top = y + "px";
-p.style.opacity = op;
-if (op <= 0) {
-clearInterval(i);
-p.remove();
-}
-}, 16);
-}
-
-update();
 </script>
 
 </body>
