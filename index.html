@@ -1,267 +1,148 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Miku Music Clicker</title>
-
-    <style>
-        * {
-            cursor: url("https://img.icons8.com/?size=256w&id=48416&format=png") 16 16, auto !important;
-        }
-
-        body {
-            background-color: #333;
-            color: #00fbff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-
-            display: flex;
-            justify-content: center;
-            align-items: center;
-
-            height: 100vh;
-            margin: 0;
-            overflow: hidden;
-        }
-
-        #game-container {
-            text-align: center;
-            background: #222;
-            padding: 30px;
-            border-radius: 20px;
-            border: 4px solid #00fbff;
-            box-shadow: 0 0 20px #00fbff;
-        }
-
-        h1 {
-            margin-top: 0;
-            text-shadow: 0 0 10px #00fbff;
-        }
-
-        .stats {
-            font-size: 24px;
-            margin: 20px 0;
-            font-weight: bold;
-        }
-
-        #miku-btn {
-            width: 300px;
-            height: 300px;
-            object-fit: contain;
-            cursor: pointer;
-            user-select: none;
-            transition: transform 0.1s;
-        }
-
-        #miku-btn:active {
-            transform: scale(0.95);
-        }
-
-        .shop {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-            margin-top: 30px;
-            margin-bottom: 20px;
-        }
-
-        button {
-            background: #00fbff;
-            color: #222;
-            border: none;
-            padding: 10px;
-            font-weight: bold;
-            cursor: pointer;
-            border-radius: 8px;
-            transition: 0.2s;
-        }
-
-        button:hover:not(:disabled) {
-            background: white;
-            transform: translateY(-2px);
-        }
-
-        button:disabled {
-            background: #555;
-            color: #888;
-            cursor: not-allowed;
-        }
-        
-        .reset-btn {
-            background: #ff4a4a;
-            color: white;
-        }
-        .reset-btn:hover {
-            background: #ff7878 !important;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Miku Music Clicker</title>
+<style>
+*{cursor:url("https://img.icons8.com/?size=256w&id=48416&format=png") 16 16,auto!important;}
+body{background:#333;color:#00fbff;font-family:Segoe UI,Tahoma,Geneva,Verdana,sans-serif;display:flex;justify-content:center;align-items:center;height:100vh;margin:0;overflow:hidden}
+#game-container{text-align:center;background:#222;padding:30px;border-radius:20px;border:4px solid #00fbff;box-shadow:0 0 20px #00fbff;max-width:1000px}
+.shop{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:20px}
+button{background:#00fbff;color:#222;border:none;padding:10px;font-weight:bold;border-radius:8px}
+button:disabled{background:#555;color:#888}
+#miku-btn{width:300px;height:300px;object-fit:contain}
+.reset-btn{background:#ff4a4a;color:white;margin-top:15px}
+</style>
 </head>
-
 <body>
-
 <div id="game-container">
+<h1>MIKU MUSIC CLICKER 🎵</h1>
 
-    <h1>MIKU MUSIC CLICKER 🎵</h1>
+<div class="stats">
+<div>Notes: <span id="note-count">0</span></div>
+<div>Notes/sec: <span id="nps-count">0</span></div>
+</div>
 
-    <div class="stats">
-        <b>Notes:</b><br>
-        <span id="note-count">0</span><br>
-        <small>Notes per second: <span id="nps-count">0</span></small>
-    </div>
+<img id="miku-btn" src="https://art.ngfiles.com/images/3032000/3032840_alphakibi_miku-titties.png?f1675755475">
 
-    <img
-        id="miku-btn"
-        src="https://art.ngfiles.com/images/3032000/3032840_alphakibi_miku-titties.png?f1675755475"
-        alt="Miku"
-    >
+<div class="shop" id="shop"></div>
 
-    <div class="shop">
-        <button id="upg-1" onclick="buyUpgrade('dancer')">
-            Backup Dancer (Cost: 10)<br>
-            +1 Note/sec
-        </button>
-
-        <button id="upg-2" onclick="buyUpgrade('mic')">
-            Pro Microphone (Cost: 100)<br>
-            +5 Notes/sec
-        </button>
-
-        <button id="upg-3" onclick="buyUpgrade('stage')">
-            Neon Stage (Cost: 1000)<br>
-            +20 Notes/sec
-        </button>
-
-        <button id="upg-4" onclick="buyUpgrade('tour')">
-            World Tour (Cost: 10000)<br>
-            +100 Notes/sec
-        </button>
-    </div>
-
-    <button class="reset-btn" onclick="resetSave()">🗑 Reset Save</button>
+<button class="reset-btn" onclick="resetSave()">🗑 Reset Save</button>
 </div>
 
 <script>
-// Laden van savegame
 let save = JSON.parse(localStorage.getItem("mikuSave"));
 
 let notes = save?.notes || 0;
 let nps = save?.nps || 0;
 
 const upgrades = save?.upgrades || {
-    dancer: { cost: 10, power: 1 },
-    mic: { cost: 100, power: 5 },
-    stage: { cost: 1000, power: 20 },
-    tour: { cost: 10000, power: 100 }
+dancer:{cost:10,power:1,name:"Backup Dancer"},
+mic:{cost:100,power:5,name:"Pro Microphone"},
+stage:{cost:1000,power:20,name:"Neon Stage"},
+tour:{cost:10000,power:100,name:"World Tour"},
+producer:{cost:50000,power:500,name:"Music Producer"},
+concert:{cost:250000,power:2500,name:"Mega Concert"},
+album:{cost:1000000,power:10000,name:"Hit Album"},
+stadium:{cost:5000000,power:50000,name:"Sold Out Stadium"},
+satellite:{cost:25000000,power:250000,name:"Satellite Broadcast"},
+ai:{cost:100000000,power:1000000,name:"AI Composer"},
+moon:{cost:500000000,power:5000000,name:"Moon Concert"},
+mars:{cost:2500000000,power:25000000,name:"Mars Tour"},
+galaxy:{cost:10000000000,power:100000000,name:"Galaxy Tour"},
+universe:{cost:50000000000,power:500000000,name:"Universal Idol"}
 };
 
-const noteDisplay = document.getElementById('note-count');
-const npsDisplay = document.getElementById('nps-count');
-const mikuBtn = document.getElementById('miku-btn');
+const noteDisplay=document.getElementById("note-count");
+const npsDisplay=document.getElementById("nps-count");
 
-// Handmatig klikken op Miku
-mikuBtn.addEventListener('click', (e) => {
-    notes += 1;
-    createParticle(e);
-    updateDisplay();
-    updateButtons();
+function formatNumber(num){
+if(num>=1e12)return (num/1e12).toFixed(1)+"T";
+if(num>=1e9)return (num/1e9).toFixed(1)+"B";
+if(num>=1e6)return (num/1e6).toFixed(1)+"M";
+if(num>=1e3)return (num/1e3).toFixed(1)+"K";
+return Math.floor(num);
+}
+
+document.getElementById("miku-btn").addEventListener("click",(e)=>{
+notes++;
+createParticle(e);
+updateDisplay();
 });
 
-// Upgrade kopen logic
-function buyUpgrade(type) {
-    const upg = upgrades[type];
-    if (notes >= upg.cost) {
-        notes -= upg.cost;
-        nps += upg.power;
-        upg.cost = Math.floor(upg.cost * 1.25); // Maak de volgende duurder
-        
-        updateDisplay();
-        updateButtons();
-        saveGame();
-    }
-}
-
-// Opslaan
-function saveGame() {
-    localStorage.setItem("mikuSave", JSON.stringify({
-        notes,
-        nps,
-        upgrades
-    }));
-}
-
-// Reset save
-function resetSave() {
-    if (confirm("Weet je zeker dat je je save wilt verwijderen?")) {
-        localStorage.removeItem("mikuSave");
-        location.reload();
-    }
-}
-
-// Automatische inkomsten per 100ms (soepelere overgang)
-setInterval(() => {
-    notes += nps / 10;
-    updateDisplay();
-    updateButtons();
-}, 100);
-
-// Auto-save elke 5 seconden
-setInterval(saveGame, 5000);
-
-function updateDisplay() {
-    noteDisplay.textContent = Math.floor(notes);
-    npsDisplay.textContent = nps;
-}
-
-function updateButtons() {
-    const keys = Object.keys(upgrades);
-    keys.forEach((key, index) => {
-        const upg = upgrades[key];
-        const btn = document.getElementById(`upg-${index + 1}`);
-        if (btn) {
-            btn.innerHTML = `${key.toUpperCase()} (Cost: ${upg.cost})<br>+${upg.power} Note/sec`;
-            btn.disabled = notes < upg.cost;
-        }
-    });
-}
-
-// Klik effecten (Muzieknoten)
-function createParticle(e) {
-    const particle = document.createElement('div');
-    particle.innerText = '♫';
-    particle.style.position = 'absolute';
-    particle.style.left = e.clientX + 'px';
-    particle.style.top = e.clientY + 'px';
-    particle.style.color = '#00fbff';
-    particle.style.fontSize = '24px';
-    particle.style.pointerEvents = 'none';
-    particle.style.zIndex = '100';
-
-    document.body.appendChild(particle);
-
-    let x = e.clientX;
-    let y = e.clientY;
-    let opacity = 1;
-
-    const anim = setInterval(() => {
-        y -= 2;
-        x += Math.random() * 2 - 1;
-        opacity -= 0.03;
-
-        particle.style.left = x + 'px';
-        particle.style.top = y + 'px';
-        particle.style.opacity = opacity;
-
-        if (opacity <= 0) {
-            clearInterval(anim);
-            particle.remove();
-        }
-    }, 16);
-}
-
-// Eerste update bij laden
+function buyUpgrade(type){
+const upg=upgrades[type];
+if(notes>=upg.cost){
+notes-=upg.cost;
+nps+=upg.power;
+upg.cost=Math.floor(upg.cost*1.25);
 updateDisplay();
-updateButtons();
+saveGame();
+}
+}
 
+function updateDisplay(){
+noteDisplay.textContent=formatNumber(notes);
+npsDisplay.textContent=formatNumber(nps);
+updateButtons();
+}
+
+function updateButtons(){
+const shop=document.getElementById("shop");
+shop.innerHTML="";
+
+for(const key in upgrades){
+const upg=upgrades[key];
+const btn=document.createElement("button");
+btn.innerHTML=`${upg.name}<br>Cost: ${formatNumber(upg.cost)}<br>+${formatNumber(upg.power)}/sec`;
+btn.disabled=notes<upg.cost;
+btn.onclick=()=>buyUpgrade(key);
+shop.appendChild(btn);
+}
+}
+
+function saveGame(){
+localStorage.setItem("mikuSave",JSON.stringify({notes,nps,upgrades}));
+}
+
+function resetSave(){
+localStorage.removeItem("mikuSave");
+location.reload();
+}
+
+setInterval(()=>{
+notes+=nps/10;
+updateDisplay();
+},100);
+
+setInterval(saveGame,5000);
+
+function createParticle(e){
+const p=document.createElement("div");
+p.innerText="♫";
+p.style.position="absolute";
+p.style.left=e.clientX+"px";
+p.style.top=e.clientY+"px";
+p.style.color="#00fbff";
+document.body.appendChild(p);
+
+let y=e.clientY;
+let o=1;
+
+const anim=setInterval(()=>{
+y-=2;
+o-=0.03;
+p.style.top=y+"px";
+p.style.opacity=o;
+if(o<=0){
+clearInterval(anim);
+p.remove();
+}
+},16);
+}
+
+updateDisplay();
 </script>
 </body>
 </html>
