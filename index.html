@@ -1,188 +1,250 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Miku Music Clicker</title>
-    <style>
-        body {
-    cursor: url('https://cdn-icons-png.flaticon.com/512/12919/12919358.png'), auto;
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Miku Music Clicker</title>
+
+<style>
+body {
+    cursor: url('https://cdn-icons-png.flaticon.com/128/3659/3659784.png') 16 16, auto;
+
+    background-color: #222;
+    color: #00fbff;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    height: 100vh;
+    margin: 0;
+    overflow: hidden;
 }
-        body {
-            background-color: #222;
-            color: #00fbff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            overflow: hidden;
-        }
 
-        #game-container {
-            text-align: center;
-            background: #333;
-            padding: 20px;
-            border-radius: 20px;
-            border: 4px solid #00fbff;
-            box-shadow: 0 0 20px #00fbff;
-        }
+#game-container {
+    text-align: center;
+    background: #333;
+    padding: 20px;
+    border-radius: 20px;
+    border: 4px solid #00fbff;
+    box-shadow: 0 0 20px #00fbff;
+}
 
-        #miku-btn {
-            width: 200px;
-            cursor: pointer;
-            transition: transform 0.1s;
-            user-select: none;
-        }
+h1 {
+    margin-top: 0;
+    text-shadow: 0 0 10px #00fbff;
+}
 
-        #miku-btn:active {
-            transform: scale(0.95);
-        }
+.stats {
+    font-size: 24px;
+    margin: 20px 0;
+    font-weight: bold;
+}
 
-        .stats {
-            font-size: 24px;
-            margin: 20px 0;
-            font-weight: bold;
-        }
+#miku-btn {
+    width: 250px;
+    max-height: 350px;
+    object-fit: contain;
 
-        .shop {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-top: 20px;
-        }
+    cursor: pointer;
+    user-select: none;
 
-        button {
-            background: #00fbff;
-            color: #222;
-            border: none;
-            padding: 10px;
-            font-weight: bold;
-            cursor: pointer;
-            border-radius: 5px;
-        }
+    transition: transform 0.1s;
+}
 
-        button:disabled {
-            background: #555;
-            color: #888;
-            cursor: not-allowed;
-        }
+#miku-btn:active {
+    transform: scale(0.95);
+}
 
-        button:hover:not(:disabled) {
-            background: #fff;
-        }
-    </style>
+.shop {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+button {
+    background: #00fbff;
+    color: #222;
+    border: none;
+    padding: 10px;
+    font-weight: bold;
+    cursor: pointer;
+    border-radius: 8px;
+    transition: 0.2s;
+}
+
+button:hover:not(:disabled) {
+    background: white;
+    transform: translateY(-2px);
+}
+
+button:disabled {
+    background: #555;
+    color: #888;
+    cursor: not-allowed;
+}
+</style>
 </head>
+
 <body>
 
-    <div id="game-container">
-        <h1>MIKU MUSIC CLICKER</h1>
-        <div class="stats">
-            Notes: <span id="note-count">0</span><br>
-            <small>Notes per second: <span id="nps-count">0</span></small>
-        </div>
+<div id="game-container">
 
-        <!-- You can replace this image URL with a real Miku PNG -->
-        <img id="miku-btn" src="https://art.ngfiles.com/images/3032000/3032840_alphakibi_miku-titties.png?f1675755475" alt="Miku">
+    <h1>🎵 MIKU MUSIC CLICKER 🎵</h1>
 
-        <div class="shop">
-            <button id="upg-1" onclick="buyUpgrade('dancer')">
-                Backup Dancer (Cost: 10) <br> +1 Note/sec
-            </button>
-            <button id="upg-2" onclick="buyUpgrade('mic')">
-                Pro Microphone (Cost: 100) <br> +5 Notes/sec
-            </button>
-            <button id="upg-3" onclick="buyUpgrade('stage')">
-                Neon Stage (Cost: 1000) <br> +20 Notes/sec
-            </button>
-            <button id="upg-4" onclick="buyUpgrade('tour')">
-                World Tour (Cost: 10000) <br> +100 Notes/sec
-            </button>
-        </div>
+    <div class="stats">
+        Notes: <span id="note-count">0</span><br>
+        <small>Notes per second: <span id="nps-count">0</span></small>
     </div>
 
-    <script>
-        let notes = 0;
-        let nps = 0;
+    <img
+        id="miku-btn"
+        src="https://art.ngfiles.com/images/3032000/3032840_alphakibi_miku-titties.png?f1675755475"
+        alt="Miku"
+    >
 
-        const upgrades = {
-            dancer: { cost: 10, power: 1 },
-            mic: { cost: 100, power: 5 },
-            stage: { cost: 1000, power: 20 },
-            tour: { cost: 10000, power: 100 }
-        };
+    <div class="shop">
+        <button id="upg-1" onclick="buyUpgrade('dancer')">
+            Backup Dancer (Cost: 10)<br>
+            +1 Note/sec
+        </button>
 
-        const noteDisplay = document.getElementById('note-count');
-        const npsDisplay = document.getElementById('nps-count');
-        const mikuBtn = document.getElementById('miku-btn');
+        <button id="upg-2" onclick="buyUpgrade('mic')">
+            Pro Microphone (Cost: 100)<br>
+            +5 Notes/sec
+        </button>
 
-        // Click Event
-        mikuBtn.addEventListener('click', () => {
-            notes++;
-            updateDisplay();
-            createParticle();
-        });
+        <button id="upg-3" onclick="buyUpgrade('stage')">
+            Neon Stage (Cost: 1000)<br>
+            +20 Notes/sec
+        </button>
 
-        function buyUpgrade(type) {
-            const upg = upgrades[type];
-            if (notes >= upg.cost) {
-                notes -= upg.cost;
-                nps += upg.power;
-                upg.cost = Math.floor(upg.cost * 1.15); // Price increases
-                updateDisplay();
-                updateButtons();
-            }
+        <button id="upg-4" onclick="buyUpgrade('tour')">
+            World Tour (Cost: 10000)<br>
+            +100 Notes/sec
+        </button>
+    </div>
+
+</div>
+
+<script>
+
+let notes = 0;
+let nps = 0;
+
+const upgrades = {
+    dancer: { cost: 10, power: 1 },
+    mic: { cost: 100, power: 5 },
+    stage: { cost: 1000, power: 20 },
+    tour: { cost: 10000, power: 100 }
+};
+
+const noteDisplay = document.getElementById('note-count');
+const npsDisplay = document.getElementById('nps-count');
+const mikuBtn = document.getElementById('miku-btn');
+
+mikuBtn.addEventListener('click', (e) => {
+
+    notes++;
+
+    updateDisplay();
+    updateButtons();
+
+    createParticle(e);
+});
+
+function buyUpgrade(type) {
+
+    const upg = upgrades[type];
+
+    if (notes >= upg.cost) {
+
+        notes -= upg.cost;
+        nps += upg.power;
+
+        upg.cost = Math.floor(upg.cost * 1.15);
+
+        updateDisplay();
+        updateButtons();
+    }
+}
+
+function updateDisplay() {
+
+    noteDisplay.textContent = Math.floor(notes);
+    npsDisplay.textContent = nps;
+}
+
+function updateButtons() {
+
+    const keys = Object.keys(upgrades);
+
+    keys.forEach((key, index) => {
+
+        const upg = upgrades[key];
+        const btn = document.getElementById(`upg-${index + 1}`);
+
+        btn.innerHTML =
+            `${key.toUpperCase()} (Cost: ${upg.cost})<br>+${upg.power} Note/sec`;
+
+        btn.disabled = notes < upg.cost;
+    });
+}
+
+setInterval(() => {
+
+    notes += nps / 10;
+
+    updateDisplay();
+    updateButtons();
+
+}, 100);
+
+function createParticle(e) {
+
+    const particle = document.createElement('div');
+
+    particle.innerText = '♫';
+
+    particle.style.position = 'absolute';
+    particle.style.left = e.clientX + 'px';
+    particle.style.top = e.clientY + 'px';
+
+    particle.style.color = '#00fbff';
+    particle.style.fontSize = '24px';
+    particle.style.pointerEvents = 'none';
+
+    document.body.appendChild(particle);
+
+    let x = e.clientX;
+    let y = e.clientY;
+    let opacity = 1;
+
+    const anim = setInterval(() => {
+
+        y -= 2;
+        x += Math.random() * 2 - 1;
+
+        opacity -= 0.03;
+
+        particle.style.left = x + 'px';
+        particle.style.top = y + 'px';
+        particle.style.opacity = opacity;
+
+        if (opacity <= 0) {
+            clearInterval(anim);
+            particle.remove();
         }
 
-        function updateDisplay() {
-            noteDisplay.innerText = Math.floor(notes);
-            npsDisplay.innerText = nps;
-        }
+    }, 16);
+}
 
-        function updateButtons() {
-            for (let key in upgrades) {
-                const btn = document.getElementById(`upg-${Object.keys(upgrades).indexOf(key) + 1}`);
-                btn.innerHTML = `${key.toUpperCase()} (Cost: ${upgrades[key].cost}) <br> +${upgrades[key].power} Note/sec`;
-                btn.disabled = notes < upgrades[key].cost;
-            }
-        }
+updateDisplay();
+updateButtons();
 
-        // Game Loop for passive income
-        setInterval(() => {
-            notes += nps / 10;
-            updateDisplay();
-            updateButtons();
-        }, 100);
+</script>
 
-        // Visual polish: Floating +1s
-        function createParticle() {
-            const particle = document.createElement('div');
-            particle.innerText = '♫';
-            particle.style.position = 'absolute';
-            particle.style.left = (event.clientX) + 'px';
-            particle.style.top = (event.clientY) + 'px';
-            particle.style.color = '#00fbff';
-            particle.style.fontSize = '20px';
-            particle.style.pointerEvents = 'none';
-            document.body.appendChild(particle);
-
-            let yPos = event.clientY;
-            let xPos = event.clientX;
-
-            const anim = setInterval(() => {
-                yPos -= 2;
-                xPos += Math.random() * 2 - 1;
-                particle.style.top = yPos + 'px';
-                particle.style.left = xPos + 'px';
-                particle.style.opacity -= 0.05;
-                if (particle.style.opacity <= 0) {
-                    clearInterval(anim);
-                    particle.remove();
-                }
-            }, 20);
-        }
-    </script>
 </body>
 </html>
