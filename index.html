@@ -3,347 +3,164 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Music Clicker</title>
+<title>Miku Music Clicker</title>
 
 <style>
-body{
-    background:#333;
-    color:#00fbff;
-    font-family:Segoe UI,sans-serif;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    min-height:100vh;
-    margin:0;
+* {
+    cursor: url("https://img.icons8.com/?size=256w&id=48416&format=png") 16 16, auto !important;
 }
 
-#game{
-    text-align:center;
-    background:#222;
-    padding:30px;
-    border-radius:20px;
-    border:4px solid #00fbff;
-    box-shadow:0 0 20px #00fbff;
+body {
+    background-color: #333;
+    color: #00fbff;
+    font-family: Arial, sans-serif;
+    margin: 0;
+    height: 100vh;
+    display: flex;
+    justify-content: center;
+    align-items: center;
 }
 
-#clicker{
-    width:250px;
-    height:250px;
-    border-radius:20px;
-    cursor:pointer;
-    transition:.1s;
+#login {
+    text-align: center;
 }
 
-#clicker:active{
-    transform:scale(.95);
+#game-container {
+    display: none;
+    text-align: center;
+    background: #222;
+    padding: 25px;
+    border-radius: 15px;
+    border: 3px solid #00fbff;
+    box-shadow: 0 0 20px #00fbff;
 }
 
-.shop{
-    display:grid;
-    grid-template-columns:1fr 1fr;
-    gap:10px;
-    margin-top:20px;
+button {
+    padding: 10px;
+    background: #00fbff;
+    border: none;
+    font-weight: bold;
+    cursor: pointer;
+    margin: 5px;
 }
 
-button{
-    border:none;
-    padding:10px;
-    border-radius:8px;
-    background:#00fbff;
-    font-weight:bold;
-    cursor:pointer;
-}
-
-button:disabled{
-    background:#555;
-    color:#999;
-}
-
-.particle{
-    position:absolute;
-    pointer-events:none;
-    color:#00fbff;
-    font-weight:bold;
+#leaderboard {
+    margin-top: 20px;
+    text-align: left;
+    background: #111;
+    padding: 10px;
+    border-radius: 10px;
 }
 </style>
 </head>
+
 <body>
 
-<div id="game">
-
-<h1>🎵 Music Clicker</h1>
-
-<h2 id="notes">0</h2>
-
-<div>
-Notes/sec:
-<span id="nps">0</span>
+<!-- LOGIN -->
+<div id="login">
+    <h2>Login met Google</h2>
+    <button id="loginBtn">Sign in</button>
 </div>
 
-<br>
+<!-- GAME -->
+<div id="game-container">
 
-<img
-id="clicker"
-src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Hatsune_Miku_V4X.svg/512px-Hatsune_Miku_V4X.svg.png"
-alt="Click"
->
+    <h1>Miku Clicker 🎵</h1>
 
-<br><br>
+    <p>Notes: <span id="notes">0</span></p>
 
-<button onclick="buyClickUpgrade()">
-Better Clicks
-(<span id="clickCost">50</span>)
-</button>
+    <img id="miku" src="https://art.ngfiles.com/images/3032000/3032840_alphakibi_miku-titties.png" width="250">
 
-<div class="shop">
+    <div>
+        <button onclick="clickNote()">Click</button>
+    </div>
 
-<button id="upg1" onclick="buyUpgrade('dancer')"></button>
-<button id="upg2" onclick="buyUpgrade('mic')"></button>
-<button id="upg3" onclick="buyUpgrade('stage')"></button>
-<button id="upg4" onclick="buyUpgrade('tour')"></button>
+    <h3>Leaderboard</h3>
+    <div id="leaderboard">Loading...</div>
 
 </div>
 
-<br>
+<script type="module">
+// Firebase
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
+import { 
+    getAuth, 
+    GoogleAuthProvider, 
+    signInWithPopup,
+    onAuthStateChanged
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
 
-<button onclick="resetSave()">
-Reset Save
-</button>
+import {
+    getFirestore,
+    doc,
+    setDoc,
+    getDocs,
+    collection,
+    orderBy,
+    query
+} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
 
-</div>
-
-<script>
-
-let save =
-JSON.parse(
-localStorage.getItem("musicSave")
-) || {};
-
-let notes =
-save.notes || 0;
-
-let nps =
-save.nps || 0;
-
-let clickPower =
-save.clickPower || 1;
-
-let clickCost =
-save.clickCost || 50;
-
-let upgrades =
-save.upgrades || {
-
-    dancer:{
-        cost:10,
-        power:1
-    },
-
-    mic:{
-        cost:100,
-        power:5
-    },
-
-    stage:{
-        cost:1000,
-        power:20
-    },
-
-    tour:{
-        cost:10000,
-        power:100
-    }
-
+// JOUW CONFIG
+const firebaseConfig = {
+  apiKey: "AIzaSyAh_8PNPkXvOAHxg3TsTM3ULvenvl4ttKI",
+  authDomain: "klik-98fc8.firebaseapp.com",
+  projectId: "klik-98fc8",
+  storageBucket: "klik-98fc8.firebasestorage.app",
+  messagingSenderId: "825491323098",
+  appId: "1:825491323098:web:bcc3ea387b8c93037acde3",
+  measurementId: "G-B9X9G4MH7G"
 };
 
-const noteEl =
-document.getElementById("notes");
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
 
-const npsEl =
-document.getElementById("nps");
+let user = null;
+let notes = 0;
 
-const clickCostEl =
-document.getElementById("clickCost");
+// LOGIN
+document.getElementById("loginBtn").onclick = async () => {
+    const provider = new GoogleAuthProvider();
+    await signInWithPopup(auth, provider);
+};
 
-const clicker =
-document.getElementById("clicker");
+// AUTH STATE
+onAuthStateChanged(auth, (u) => {
+    if (u) {
+        user = u;
+        document.getElementById("login").style.display = "none";
+        document.getElementById("game-container").style.display = "block";
+        loadLeaderboard();
+    }
+});
 
-clicker.addEventListener(
-"click",
-e => {
+// GAME
+window.clickNote = async function() {
+    notes++;
+    document.getElementById("notes").innerText = notes;
 
-    notes += clickPower;
+    await setDoc(doc(db, "scores", user.uid), {
+        name: user.displayName,
+        score: notes
+    });
+};
 
-    particle(e);
+// LEADERBOARD
+async function loadLeaderboard() {
+    const q = query(collection(db, "scores"), orderBy("score", "desc"));
+    const snap = await getDocs(q);
 
-    update();
-
-}
-);
-
-function buyUpgrade(name){
-
-    const upg =
-    upgrades[name];
-
-    if(notes < upg.cost)
-    return;
-
-    notes -= upg.cost;
-
-    nps += upg.power;
-
-    upg.cost =
-    Math.floor(
-    upg.cost * 1.25
-    );
-
-    update();
-}
-
-function buyClickUpgrade(){
-
-    if(notes < clickCost)
-    return;
-
-    notes -= clickCost;
-
-    clickPower++;
-
-    clickCost =
-    Math.floor(
-    clickCost * 1.5
-    );
-
-    update();
-}
-
-function update(){
-
-    noteEl.textContent =
-    Math.floor(notes);
-
-    npsEl.textContent =
-    nps;
-
-    clickCostEl.textContent =
-    clickCost;
-
-    const names =
-    Object.keys(upgrades);
-
-    names.forEach(
-    (name,index)=>{
-
-        const upg =
-        upgrades[name];
-
-        const btn =
-        document.getElementById(
-        "upg"+(index+1)
-        );
-
-        btn.innerHTML =
-        `${name}<br>
-        Cost: ${upg.cost}<br>
-        +${upg.power}/s`;
-
-        btn.disabled =
-        notes < upg.cost;
+    let html = "";
+    snap.forEach(doc => {
+        const d = doc.data();
+        html += `<div>${d.name}: ${d.score}</div>`;
     });
 
-    save();
+    document.getElementById("leaderboard").innerHTML = html;
 }
 
-function save(){
-
-    localStorage.setItem(
-    "musicSave",
-
-    JSON.stringify({
-
-        notes,
-        nps,
-        clickPower,
-        clickCost,
-        upgrades
-
-    })
-    );
-}
-
-function resetSave(){
-
-    localStorage.removeItem(
-    "musicSave"
-    );
-
-    location.reload();
-}
-
-function particle(e){
-
-    const p =
-    document.createElement("div");
-
-    p.className =
-    "particle";
-
-    p.innerText =
-    "+"+clickPower;
-
-    p.style.left =
-    e.clientX+"px";
-
-    p.style.top =
-    e.clientY+"px";
-
-    document.body
-    .appendChild(p);
-
-    let y =
-    e.clientY;
-
-    let op = 1;
-
-    const anim =
-    setInterval(()=>{
-
-        y -= 2;
-
-        op -= .03;
-
-        p.style.top =
-        y+"px";
-
-        p.style.opacity =
-        op;
-
-        if(op <= 0){
-
-            clearInterval(anim);
-
-            p.remove();
-        }
-
-    },16);
-}
-
-setInterval(()=>{
-
-    notes +=
-    nps / 10;
-
-    update();
-
-},100);
-
-setInterval(
-save,
-5000
-);
-
-update();
+// refresh leaderboard
+setInterval(loadLeaderboard, 5000);
 
 </script>
 
