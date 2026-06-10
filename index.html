@@ -108,24 +108,6 @@ button:disabled{
 <h1>🎵 MIKU MUSIC CLICKER DELUXE 🎵</h1>
 
 <div class="stats">
-   // Geluid ophalen
-const clickSound = document.getElementById("clickSound");
-
-// Klikken op Miku
-mikuBtn.addEventListener('click', (e) => {
-
-    notes += clickPower;
-
-    // Geluid afspelen bij iedere klik
-    const sound = clickSound.cloneNode();
-    sound.play().catch(() => {});
-
-    createParticle(e);
-
-    updateDisplay();
-    updateButtons();
-
-});
 </div>
 
 <img
@@ -375,20 +357,24 @@ function buyClickUpgrade(){
     }
 }
 
-document
-.getElementById("miku")
-.addEventListener(
-"click",
-function(e){
+// Geluid ophalen
+const clickSound = document.getElementById("clickSound");
 
-    notes +=
-    clickPower *
-    (1 + stars*0.25);
+// Klikken op Miku
+mikuBtn.addEventListener('click', (e) => {
+
+    notes += clickPower;
+
+    // Geluid afspelen bij iedere klik
+    const sound = clickSound.cloneNode();
+    sound.play().catch(() => {});
 
     createParticle(e);
 
     updateDisplay();
     updateButtons();
+
+});
 });
 
 function createParticle(e){
