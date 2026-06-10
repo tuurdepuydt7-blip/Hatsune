@@ -108,10 +108,24 @@ button:disabled{
 <h1>🎵 MIKU MUSIC CLICKER DELUXE 🎵</h1>
 
 <div class="stats">
-    Notes: <span id="notes">0</span><br>
-    Notes/sec: <span id="nps">0</span><br>
-    Click Power: <span id="clickPower">1</span><br>
-    Stars ⭐: <span id="stars">0</span>
+   // Geluid ophalen
+const clickSound = document.getElementById("clickSound");
+
+// Klikken op Miku
+mikuBtn.addEventListener('click', (e) => {
+
+    notes += clickPower;
+
+    // Geluid afspelen bij iedere klik
+    const sound = clickSound.cloneNode();
+    sound.play().catch(() => {});
+
+    createParticle(e);
+
+    updateDisplay();
+    updateButtons();
+
+});
 </div>
 
 <img
@@ -159,7 +173,9 @@ Nog geen achievements.
 </div>
 
 </div>
-
+<audio id="clickSound" preload="auto">
+    <source src="Opname (3).m4a" type="audio/mp4">
+</audio>
 <script>
 
 let save = JSON.parse(localStorage.getItem("mikuSave")) || {};
