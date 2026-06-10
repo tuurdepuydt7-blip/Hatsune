@@ -1,174 +1,548 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Miku Music Clicker</title>
+<title>Miku Music Clicker Deluxe</title>
 
 <style>
-* {
-    cursor: url("https://img.icons8.com/?size=256w&id=48416&format=png") 16 16, auto !important;
+*{
+    box-sizing:border-box;
 }
 
-body {
-    background-color: #333;
-    color: #00fbff;
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-
-    display: flex;
-    justify-content: center;
-    align-items: center;
-
-    height: 100vh;
-    margin: 0;
-    overflow: hidden;
+body{
+    margin:0;
+    font-family:Segoe UI,sans-serif;
+    background:#222;
+    color:#00fbff;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
 }
 
-#login {
-    text-align: center;
+#game{
+    width:900px;
+    max-width:95%;
+    background:#111;
+    border:4px solid #00fbff;
+    border-radius:20px;
+    padding:25px;
+    box-shadow:0 0 25px #00fbff;
+    text-align:center;
 }
 
-#game-container {
-    display: none;
-    text-align: center;
-    background: #222;
-    padding: 25px;
-    border-radius: 15px;
-    border: 3px solid #00fbff;
-    box-shadow: 0 0 20px #00fbff;
+h1{
+    margin-top:0;
 }
 
-button {
-    padding: 10px;
-    background: #00fbff;
-    border: none;
-    font-weight: bold;
-    cursor: pointer;
-    margin: 5px;
+.stats{
+    font-size:22px;
+    margin-bottom:20px;
 }
 
-#leaderboard {
-    margin-top: 20px;
-    text-align: left;
-    background: #111;
-    padding: 10px;
-    border-radius: 10px;
+#miku{
+    width:280px;
+    height:280px;
+    border-radius:20px;
+    cursor:pointer;
+    user-select:none;
+    transition:.1s;
+}
+
+#miku:active{
+    transform:scale(.95);
+}
+
+.shop{
+    display:grid;
+    grid-template-columns:repeat(2,1fr);
+    gap:10px;
+    margin-top:20px;
+}
+
+button{
+    background:#00fbff;
+    color:#111;
+    border:none;
+    border-radius:10px;
+    padding:12px;
+    font-weight:bold;
+    cursor:pointer;
+}
+
+button:hover:not(:disabled){
+    transform:translateY(-2px);
+}
+
+button:disabled{
+    background:#444;
+    color:#888;
+}
+
+.section{
+    margin-top:20px;
+}
+
+#achievements{
+    margin-top:20px;
+    padding:10px;
+    background:#1b1b1b;
+    border-radius:10px;
+}
+
+.particle{
+    position:absolute;
+    pointer-events:none;
+    color:#00fbff;
+    font-size:22px;
 }
 </style>
 </head>
 
 <body>
 
-<!-- LOGIN -->
-<div id="login">
-    <h2>Login met Google</h2>
-    <button id="loginBtn">Sign in</button>
+<div id="game">
+
+<h1>🎵 MIKU MUSIC CLICKER DELUXE 🎵</h1>
+
+<div class="stats">
+    Notes: <span id="notes">0</span><br>
+    Notes/sec: <span id="nps">0</span><br>
+    Click Power: <span id="clickPower">1</span><br>
+    Stars ⭐: <span id="stars">0</span>
 </div>
 
-<!-- GAME -->
-<div id="game-container">
+<img
+id="miku"
+src="https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/Hatsune_Miku_V4X.svg/512px-Hatsune_Miku_V4X.svg.png"
+alt="Miku"
+>
 
-    <h1>Miku Clicker 🎵</h1>
+<div class="section">
+    <button onclick="buyClickUpgrade()">
+        Better Songs (+1 Click Power)
+        <br>
+        Cost: <span id="clickCost">50</span>
+    </button>
+</div>
 
-    <p>Notes: <span id="notes">0</span></p>
+<div class="shop">
 
-    <img id="miku" src="https://art.ngfiles.com/images/3032000/3032840_alphakibi_miku-titties.png" width="250">
-
-    <div>
-        <button onclick="clickNote()">Click</button>
-    </div>
-
-    <h3>Leaderboard</h3>
-    <div id="leaderboard">Loading...</div>
+<button id="upg1" onclick="buyUpgrade('dancer')"></button>
+<button id="upg2" onclick="buyUpgrade('mic')"></button>
+<button id="upg3" onclick="buyUpgrade('stage')"></button>
+<button id="upg4" onclick="buyUpgrade('tour')"></button>
+<button id="upg5" onclick="buyUpgrade('producer')"></button>
+<button id="upg6" onclick="buyUpgrade('stadium')"></button>
+<button id="upg7" onclick="buyUpgrade('anime')"></button>
+<button id="upg8" onclick="buyUpgrade('hologram')"></button>
 
 </div>
 
-<script type="module">
+<div class="section">
+    <button onclick="prestige()">
+        ⭐ Prestige (1,000,000 Notes)
+    </button>
+</div>
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.5/firebase-app.js";
-import { 
-    getAuth, 
-    GoogleAuthProvider, 
-    signInWithPopup,
-    onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-auth.js";
+<div class="section">
+    <button onclick="resetSave()">🗑 Reset Save</button>
+</div>
 
-import {
-    getFirestore,
-    doc,
-    setDoc,
-    getDocs,
-    collection,
-    orderBy,
-    query
-} from "https://www.gstatic.com/firebasejs/10.12.5/firebase-firestore.js";
+<div id="achievements">
+<h3>🏆 Achievements</h3>
+<div id="achievementList">
+Nog geen achievements.
+</div>
+</div>
 
-/* FIREBASE CONFIG */
-const firebaseConfig = {
-  apiKey: "AIzaSyAh_8PNPkXvOAHxg3TsTM3ULvenvl4ttKI",
-  authDomain: "klik-98fc8.firebaseapp.com",
-  projectId: "klik-98fc8",
-  storageBucket: "klik-98fc8.firebasestorage.app",
-  messagingSenderId: "825491323098",
-  appId: "1:825491323098:web:bcc3ea387b8c93037acde3"
-};
+</div>
 
-const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
-const db = getFirestore(app);
+<script>
 
-/* STATE */
-let user = null;
-let notes = 0;
+let save = JSON.parse(localStorage.getItem("mikuSave")) || {};
 
-/* LOGIN */
-document.getElementById("loginBtn").onclick = async () => {
-    const provider = new GoogleAuthProvider();
-    await signInWithPopup(auth, provider);
-};
+let notes = save.notes || 0;
+let nps = save.nps || 0;
+let clickPower = save.clickPower || 1;
+let clickCost = save.clickCost || 50;
+let stars = save.stars || 0;
 
-/* AUTH */
-onAuthStateChanged(auth, (u) => {
-    if (u) {
-        user = u;
-        document.getElementById("login").style.display = "none";
-        document.getElementById("game-container").style.display = "block";
-        loadLeaderboard();
+let achievements = save.achievements || [];
+
+const upgrades = save.upgrades || {
+
+    dancer:{
+        cost:10,
+        power:1
+    },
+
+    mic:{
+        cost:100,
+        power:5
+    },
+
+    stage:{
+        cost:1000,
+        power:20
+    },
+
+    tour:{
+        cost:10000,
+        power:100
+    },
+
+    producer:{
+        cost:50000,
+        power:500
+    },
+
+    stadium:{
+        cost:250000,
+        power:2000
+    },
+
+    anime:{
+        cost:1000000,
+        power:10000
+    },
+
+    hologram:{
+        cost:5000000,
+        power:50000
     }
-});
-
-/* GAME CLICK */
-window.clickNote = async function() {
-    notes++;
-    document.getElementById("notes").innerText = notes;
-
-    // save score to Firebase (alleen hier toegevoegd)
-    if (user) {
-        await setDoc(doc(db, "scores", user.uid), {
-            name: user.displayName,
-            score: notes
-        });
-    }
 };
 
-/* LEADERBOARD */
-async function loadLeaderboard() {
-    const q = query(collection(db, "scores"), orderBy("score", "desc"));
-    const snap = await getDocs(q);
+const lastPlayed = save.lastPlayed || Date.now();
 
-    let html = "";
-    snap.forEach(docSnap => {
-        const d = docSnap.data();
-        html += `<div>${d.name}: ${d.score}</div>`;
-    });
+const offlineSeconds =
+(Math.floor((Date.now()-lastPlayed)/1000));
 
-    document.getElementById("leaderboard").innerHTML = html;
+notes += offlineSeconds * nps;
+
+const noteDisplay =
+document.getElementById("notes");
+
+const npsDisplay =
+document.getElementById("nps");
+
+const clickDisplay =
+document.getElementById("clickPower");
+
+const starDisplay =
+document.getElementById("stars");
+
+function format(num){
+
+    if(num >= 1e12)
+        return (num/1e12).toFixed(1)+"T";
+
+    if(num >= 1e9)
+        return (num/1e9).toFixed(1)+"B";
+
+    if(num >= 1e6)
+        return (num/1e6).toFixed(1)+"M";
+
+    if(num >= 1e3)
+        return (num/1e3).toFixed(1)+"K";
+
+    return Math.floor(num);
 }
 
-/* refresh leaderboard */
-setInterval(loadLeaderboard, 5000);
+function updateDisplay(){
+
+    noteDisplay.textContent =
+    format(notes);
+
+    npsDisplay.textContent =
+    format(nps);
+
+    clickDisplay.textContent =
+    clickPower;
+
+    starDisplay.textContent =
+    stars;
+
+    document.getElementById(
+    "clickCost"
+    ).textContent = format(clickCost);
+}
+
+function updateButtons(){
+
+    const keys =
+    Object.keys(upgrades);
+
+    keys.forEach((key,index)=>{
+
+        const btn =
+        document.getElementById(
+        "upg"+(index+1)
+        );
+
+        const upg =
+        upgrades[key];
+
+        btn.innerHTML =
+        `${key.toUpperCase()}
+        <br>
+        Cost: ${format(upg.cost)}
+        <br>
+        +${format(upg.power)} NPS`;
+
+        btn.disabled =
+        notes < upg.cost;
+    });
+}
+
+function saveGame(){
+
+    localStorage.setItem(
+    "mikuSave",
+
+    JSON.stringify({
+
+        notes,
+        nps,
+        clickPower,
+        clickCost,
+        stars,
+        upgrades,
+        achievements,
+        lastPlayed:Date.now()
+
+    }));
+}
+
+function buyUpgrade(type){
+
+    const upg =
+    upgrades[type];
+
+    if(notes >= upg.cost){
+
+        notes -= upg.cost;
+
+        nps +=
+        upg.power;
+
+        upg.cost =
+        Math.floor(
+        upg.cost * 1.35
+        );
+
+        updateDisplay();
+        updateButtons();
+
+        saveGame();
+    }
+}
+
+function buyClickUpgrade(){
+
+    if(notes >= clickCost){
+
+        notes -= clickCost;
+
+        clickPower++;
+
+        clickCost =
+        Math.floor(
+        clickCost * 1.7
+        );
+
+        updateDisplay();
+
+        saveGame();
+    }
+}
+
+document
+.getElementById("miku")
+.addEventListener(
+"click",
+function(e){
+
+    notes +=
+    clickPower *
+    (1 + stars*0.25);
+
+    createParticle(e);
+
+    updateDisplay();
+    updateButtons();
+});
+
+function createParticle(e){
+
+    const p =
+    document.createElement("div");
+
+    p.className =
+    "particle";
+
+    p.innerHTML =
+    "♫";
+
+    p.style.left =
+    e.clientX+"px";
+
+    p.style.top =
+    e.clientY+"px";
+
+    document.body
+    .appendChild(p);
+
+    let y =
+    e.clientY;
+
+    let opacity = 1;
+
+    const anim =
+    setInterval(()=>{
+
+        y -= 2;
+        opacity -= .03;
+
+        p.style.top =
+        y+"px";
+
+        p.style.opacity =
+        opacity;
+
+        if(opacity <= 0){
+
+            clearInterval(anim);
+
+            p.remove();
+        }
+
+    },16);
+}
+
+setInterval(()=>{
+
+    notes +=
+    nps/10;
+
+    updateDisplay();
+    updateButtons();
+
+},100);
+
+function unlock(name){
+
+    if(
+    !achievements.includes(name)
+    ){
+
+        achievements.push(name);
+
+        updateAchievements();
+    }
+}
+
+function updateAchievements(){
+
+    const list =
+    document.getElementById(
+    "achievementList"
+    );
+
+    if(
+    achievements.length===0
+    ){
+        list.innerHTML =
+        "Nog geen achievements.";
+        return;
+    }
+
+    list.innerHTML =
+    achievements.join("<br>");
+}
+
+setInterval(()=>{
+
+    if(notes>=100)
+        unlock("🎵 First 100 Notes");
+
+    if(notes>=1000)
+        unlock("🎤 First Concert");
+
+    if(notes>=100000)
+        unlock("🌟 Rising Idol");
+
+    if(notes>=1000000)
+        unlock("👑 Miku Superstar");
+
+},1000);
+
+function prestige(){
+
+    if(notes >= 1000000){
+
+        stars++;
+
+        notes = 0;
+        nps = 0;
+        clickPower = 1;
+        clickCost = 50;
+
+        Object.values(
+        upgrades
+        ).forEach(upg=>{
+
+            upg.cost =
+            Math.max(
+            10,
+            Math.floor(
+            upg.cost/5
+            )
+            );
+
+        });
+
+        saveGame();
+
+        alert(
+        "Prestige Complete! ⭐"
+        );
+
+        updateDisplay();
+        updateButtons();
+    }
+}
+
+function resetSave(){
+
+    if(
+    confirm(
+    "Reset save?"
+    )
+    ){
+
+        localStorage
+        .removeItem(
+        "mikuSave"
+        );
+
+        location.reload();
+    }
+}
+
+setInterval(
+saveGame,
+5000
+);
+
+updateDisplay();
+updateButtons();
+updateAchievements();
 
 </script>
 
 </body>
 </html>
+```
