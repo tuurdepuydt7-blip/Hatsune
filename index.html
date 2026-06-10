@@ -4,42 +4,68 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Miku Music Clicker Deluxe</title>
+
 <style>
-body{margin:0;background:#111;color:#00f7ff;font-family:Arial,sans-serif;text-align:center}
-#game{max-width:900px;margin:20px auto;padding:20px;border:3px solid #00f7ff;border-radius:20px}
+body{
+margin:0;background:#111;color:#00f7ff;
+font-family:Arial,sans-serif;text-align:center
+}
+#game{
+max-width:900px;margin:20px auto;padding:20px;
+border:3px solid #00f7ff;border-radius:20px
+}
 #miku{width:260px;cursor:pointer;transition:.1s}
 #miku:active{transform:scale(.95)}
 .shop{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-top:15px}
 button{padding:10px;border:none;border-radius:10px;cursor:pointer}
-.particle{position:fixed;pointer-events:none}
+.particle{position:fixed;pointer-events:none;color:#fff}
 </style>
 </head>
+
 <body>
+
 <div id="game">
 <h1>🎵 Miku Music Clicker Deluxe 🎵</h1>
+
 <div>
 Notes: <span id="notes">0</span> |
 NPS: <span id="nps">0</span> |
 Level: <span id="level">1</span> |
 Stars: <span id="stars">0</span>
 </div>
-<img id="miku" src="https://img.xbooru.com//images/156/d0f26cadd6c58bc6b7e50a7fe1877d2f.png?165560">
+
+<img id="miku"
+src="https://img.xbooru.com//images/156/d0f26cadd6c58bc6b7e50a7fe1877d2f.png?165560">
+
 <br><br>
-<button onclick="buyClick()">Better Songs (+1 Click) Cost <span id="clickCost">50</span></button>
+
+<button onclick="buyClick()">
+Better Songs (+1 Click) Cost <span id="clickCost">50</span>
+</button>
+
 <div class="shop" id="shop"></div>
+
 <h3>🏆 Achievements</h3>
 <div id="ach"></div>
+
 <button onclick="prestige()">⭐ Prestige (1,000,000 notes)</button>
 <button onclick="resetSave()">Reset</button>
 </div>
 
 <script>
-let save=JSON.parse(localStorage.getItem("mikuDeluxe")||"{}");
-let notes=save.notes||0,nps=save.nps||0,stars=save.stars||0,clickPower=save.clickPower||1,clickCost=save.clickCost||50;
-let achievements=save.achievements||[];
-let lastPlayed=save.lastPlayed||Date.now();
+// ================= SAVE =================
+let save = JSON.parse(localStorage.getItem("mikuDeluxe") || "{}");
 
-const upgrades=save.upgrades||{
+let notes = save.notes || 0;
+let nps = save.nps || 0;
+let stars = save.stars || 0;
+let clickPower = save.clickPower || 1;
+let clickCost = save.clickCost || 50;
+let achievements = save.achievements || [];
+let lastPlayed = save.lastPlayed || Date.now();
+
+// ================= UPGRADES =================
+let upgrades = {
 Dancer:{cost:10,power:1},
 Mic:{cost:100,power:5},
 Stage:{cost:1000,power:20},
@@ -48,95 +74,17 @@ Producer:{cost:50000,power:500},
 Stadium:{cost:250000,power:2000},
 Anime:{cost:1000000,power:10000},
 Hologram:{cost:5000000,power:50000},
-Planet:{cost:25000000,power:250000},
-Universe:{cost:100000000,power:1000000}
+IdolArmy:{cost:12000000,power:120000},
+VocalEngine:{cost:30000000,power:300000},
+SynthGod:{cost:80000000,power:900000},
+QuantumBeat:{cost:200000000,power:2500000},
+AIComposer:{cost:500000000,power:8000000}
 };
 
-notes += Math.floor((Date.now()-lastPlayed)/1000)*nps;
+// offline income
+notes += Math.floor((Date.now()-lastPlayed)/1000)*(nps/10);
 
-function mult(){return 1+stars*0.25}
-function fmt(n){if(n>=1e9)return(n/1e9).toFixed(1)+"B";if(n>=1e6)return(n/1e6).toFixed(1)+"M";if(n>=1e3)return(n/1e3).toFixed(1)+"K";return Math.floor(n)}
-function level(){return Math.max(1,Math.floor(Math.sqrt(notes/100))+1)}
-
-function update(){
-notesEl.textContent=fmt(notes);
-npsEl.textContent=fmt(nps);
-levelEl.textContent=level();
-starsEl.textContent=stars;
-clickCostEl.textContent=fmt(clickCost);
-renderShop();
-ach.innerHTML=achievements.join("<br>")||"No achievements";
-}
-function renderShop(){
-shop.innerHTML="";
-Object.keys(upgrades).forEach(k=>{
-let u=upgrades[k];
-let b=document.createElement("button");
-b.innerHTML=`${k}<br>Cost ${fmt(u.cost)}<br>+${fmt(u.power)} NPS`;
-b.disabled=notes<u.cost;
-b.onclick=()=>buyUpgrade(k);
-shop.appendChild(b);
-});
-}
-function buyUpgrade(k){
-let u=upgrades[k];
-if(notes>=u.cost){
-notes-=u.cost;nps+=u.power;u.cost=Math.floor(u.cost*1.35);update();
-}
-}
-function buyClick(){
-if(notes>=clickCost){notes-=clickCost;clickPower++;clickCost=Math.floor(clickCost*1.7);update();}
-}
-miku.onclick=e=>{
-let gain=clickPower*mult();
-if(Math.random()<0.05) gain*=10;
-notes+=gain;
-particle(e.clientX,e.clientY,"♫ +"+Math.floor(gain));
-update();
-};
-function particle(x,y,t){
-let d=document.createElement("div");
-d.className="particle"; d.textContent=t;
-d.style.left=x+"px"; d.style.top=y+"px";
-document.body.appendChild(d);
-let i=setInterval(()=>{y-=2;d.style.top=y+"px";d.style.opacity=(parseFloat(d.style.opacity||1)-0.03); if((parseFloat(d.style.opacity)||1)<=0){clearInterval(i);d.remove();}},16);
-}
-setInterval(()=>{notes+=(nps/10)*mult();update();},100);
-
-function unlock(a){if(!achievements.includes(a)){achievements.push(a);}}
-setInterval(()=>{
-if(notes>=100)unlock("🎵 First 100 Notes");
-if(notes>=1000)unlock("🎤 First Concert");
-if(notes>=100000)unlock("🌟 Rising Idol");
-if(notes>=1000000)unlock("👑 Miku Superstar");
-},1000);
-
-function prestige(){
-if(notes>=1000000){
-stars++; notes=0; nps=0; clickPower=1; clickCost=50;
-alert("Prestige complete!");
-update();
-}
-}
-function saveGame(){
-localStorage.setItem("mikuDeluxe",JSON.stringify({notes,nps,stars,clickPower,clickCost,achievements,upgrades,lastPlayed:Date.now()}));
-}
-function resetSave(){localStorage.removeItem("mikuDeluxe");location.reload();}
-
-setInterval(saveGame,5000);
-
-// Golden Miku
-setInterval(()=>{
-let g=document.createElement("button");
-g.textContent="🌟 GOLDEN MIKU";
-g.style.position="fixed";
-g.style.left=(Math.random()*80)+"vw";
-g.style.top=(Math.random()*70)+"vh";
-g.onclick=()=>{notes+=Math.max(1000,nps*100);g.remove();update();};
-document.body.appendChild(g);
-setTimeout(()=>g.remove(),10000);
-},120000);
-
+// ================= DOM =================
 const notesEl=document.getElementById("notes");
 const npsEl=document.getElementById("nps");
 const levelEl=document.getElementById("level");
@@ -145,7 +93,166 @@ const clickCostEl=document.getElementById("clickCost");
 const shop=document.getElementById("shop");
 const ach=document.getElementById("ach");
 
+// ================= CORE =================
+function mult(){return 1+stars*0.25}
+
+function fmt(n){
+if(n>=1e9)return(n/1e9).toFixed(1)+"B";
+if(n>=1e6)return(n/1e6).toFixed(1)+"M";
+if(n>=1e3)return(n/1e3).toFixed(1)+"K";
+return Math.floor(n)
+}
+
+function getLevel(){
+return Math.max(1,Math.floor(Math.sqrt(notes/100))+1)
+}
+
+function update(){
+notesEl.textContent=fmt(notes);
+npsEl.textContent=fmt(nps);
+levelEl.textContent=getLevel();
+starsEl.textContent=stars;
+clickCostEl.textContent=fmt(clickCost);
+
+renderShop();
+ach.innerHTML=achievements.join("<br>")||"No achievements";
+}
+
+// ================= SHOP =================
+function renderShop(){
+shop.innerHTML="";
+Object.keys(upgrades).forEach(k=>{
+let u=upgrades[k];
+let b=document.createElement("button");
+
+b.innerHTML=`${k}<br>Cost ${fmt(u.cost)}<br>+${fmt(u.power)} NPS`;
+
+b.disabled=notes<u.cost;
+
+b.onclick=()=>{
+if(notes>=u.cost){
+notes-=u.cost;
+nps+=u.power;
+u.cost=Math.floor(u.cost*1.35);
+update();
+}
+};
+
+shop.appendChild(b);
+});
+}
+
+// ================= CLICK =================
+miku.onclick=(e)=>{
+let gain=clickPower*mult();
+if(Math.random()<0.05) gain*=10;
+
+notes+=gain;
+
+particle(e.clientX,e.clientY,"♫ +"+Math.floor(gain));
+update();
+};
+
+function buyClick(){
+if(notes>=clickCost){
+notes-=clickCost;
+clickPower++;
+clickCost=Math.floor(clickCost*1.7);
+update();
+}
+}
+
+// ================= PARTICLES =================
+function particle(x,y,t){
+let d=document.createElement("div");
+d.className="particle";
+d.textContent=t;
+d.style.left=x+"px";
+d.style.top=y+"px";
+
+document.body.appendChild(d);
+
+let opacity=1;
+let i=setInterval(()=>{
+y-=2;
+opacity-=0.03;
+
+d.style.top=y+"px";
+d.style.opacity=opacity;
+
+if(opacity<=0){
+clearInterval(i);
+d.remove();
+}
+},16);
+}
+
+// ================= PASSIVE =================
+setInterval(()=>{
+notes+=(nps/10)*mult();
+update();
+},100);
+
+// ================= ACHIEVEMENTS =================
+function unlock(a){
+if(!achievements.includes(a)) achievements.push(a);
+}
+
+setInterval(()=>{
+if(notes>=100)unlock("🎵 First 100 Notes");
+if(notes>=1000)unlock("🎤 First Concert");
+if(notes>=100000)unlock("🌟 Rising Idol");
+if(notes>=1000000)unlock("👑 Miku Superstar");
+},1000);
+
+// ================= PRESTIGE =================
+function prestige(){
+if(notes>=1000000){
+stars++;
+notes=0;
+nps=0;
+clickPower=1;
+clickCost=50;
+alert("Prestige complete!");
+update();
+}
+}
+
+// ================= SAVE =================
+function saveGame(){
+localStorage.setItem("mikuDeluxe",JSON.stringify({
+notes,nps,stars,clickPower,clickCost,achievements,lastPlayed:Date.now()
+}));
+}
+
+function resetSave(){
+localStorage.removeItem("mikuDeluxe");
+location.reload();
+}
+
+setInterval(saveGame,5000);
+
+// ================= GOLDEN MIKU =================
+setInterval(()=>{
+let g=document.createElement("button");
+g.textContent="🌟 GOLDEN MIKU";
+g.style.position="fixed";
+g.style.left=(Math.random()*80)+"vw";
+g.style.top=(Math.random()*70)+"vh";
+
+g.onclick=()=>{
+notes+=Math.max(1000,nps*100);
+g.remove();
+update();
+};
+
+document.body.appendChild(g);
+setTimeout(()=>g.remove(),10000);
+},120000);
+
+// ================= START =================
 update();
 </script>
+
 </body>
 </html>
